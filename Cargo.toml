@@ -1,0 +1,15 @@
+[package]
+name = "titys"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+nom = "7.1.1"
+nom_locate = "*"
+memchr = { version = "2.7", default-features = false }
+bytecount = { version = "0.6" }
+
+[dev-dependencies]
+
