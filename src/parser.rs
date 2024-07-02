@@ -39,7 +39,7 @@ pub(crate) fn calc_offset<'a>(i: Span<'a>, r: Span<'a>) -> Span<'a> {
 }
 
 fn factor(i: Span) -> IResult<Span, Expression> {
-    alt((str_literal, num_literal, func_call, ident, parens))(i)
+    alt((dq_str_literal, sq_str_literal, tmpl_str_literal, num_literal, func_call, ident, parens))(i)
 }
 
 fn func_call(i: Span) -> IResult<Span, Expression> {
@@ -90,7 +90,7 @@ fn process_str_literal(input: Vec<char>) -> String {
 }
 
 fn dq_str_literal(i: Span) -> IResult<Span, Expression> {
-    let (r0, _) = preceded(multispace0, char('\"'))(i)?;
+    let (r0, _) = preceded(multispace0, char('"'))(i)?;
     let (r, val) = many0(none_of("\""))(r0)?;
     let (r, _) = terminated(char('"'), multispace0)(r)?;
     Ok((
@@ -98,6 +98,28 @@ fn dq_str_literal(i: Span) -> IResult<Span, Expression> {
         Expression::new(ExprEnum::StrLiteral(process_str_literal(val)), i),
     ))
 }
+
+fn sq_str_literal(i: Span) -> IResult<Span, Expression> {
+    let (r0, _) = preceded(multispace0, char('\''))(i)?;
+    let (r, val) = many0(none_of("\'"))(r0)?;
+    let (r, _) = terminated(char('\''), multispace0)(r)?;
+    Ok((
+        r,
+        Expression::new(ExprEnum::StrLiteral(process_str_literal(val)), i),
+    ))
+}
+
+// TODO: implement interpolation of expressions (`${expr}`).
+fn tmpl_str_literal(i: Span) -> IResult<Span, Expression> {
+    let (r0, _) = preceded(multispace0, char('`'))(i)?;
+    let (r, val) = many0(none_of("\\`"))(r0)?;
+    let (r, _) = terminated(char('`'), multispace0)(r)?;
+    Ok((
+        r,
+        Expression::new(ExprEnum::StrLiteral(process_str_literal(val)), i),
+    ))
+}
+
 
 fn num_literal(input: Span) -> IResult<Span, Expression> {
     let (r, v) = space_delimited(recognize_float)(input)?;

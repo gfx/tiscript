@@ -143,14 +143,14 @@ fn eval_to_json(params: &Params) -> Result<serde_json::Value, Box<dyn std::error
 
     let mut compiler = Compiler::new();
     compiler.compile(&stmts)?;
-    compiler.write_funcs(&mut std::io::Cursor::new(&mut buf))?;
-
-    let bytecode = Rc::new(read_program(&mut std::io::Cursor::new(&mut buf))?);
 
     if params.check {
         eprintln!("{}: Compile Ok.", params.source_file);
         return Ok(().into());
     }
+
+    compiler.write_funcs(&mut std::io::Cursor::new(&mut buf))?;
+    let bytecode = Rc::new(read_program(&mut std::io::Cursor::new(&mut buf))?);
 
     let mut vm = Vm::new(bytecode, Box::new(()), is_debug());
     if let Err(e) = vm.init_fn("main", &[]) {
@@ -270,6 +270,12 @@ mod tests {
     }
 
     #[test]
+    fn test_scalar_sq_str_with_escapes() {
+        let result = simple_eval("export let x: string = 'hello, world!\\n';");
+        assert_eq!(result, json!({"x": "hello, world!\n"}));
+    }
+
+    #[test]
     fn test_multiple_exports() {
         // multiple exports
         let result = simple_eval(
@@ -292,7 +298,7 @@ mod tests {
         let result = simple_eval(
             r#"
             let one: number = 1;
-            let two: number = 2;g
+            let two: number = 2;
             export let three: number = one + two;
         "#,
         );
