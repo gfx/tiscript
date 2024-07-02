@@ -2,7 +2,8 @@
 
 use std::{
     io::{BufRead, BufReader, Write},
-    process::exit, rc::Rc,
+    process::exit,
+    rc::Rc,
 };
 
 use serde_json::json;
@@ -119,9 +120,14 @@ fn eval_to_json(params: &Params) -> Result<serde_json::Value, Box<dyn std::error
     let stmts = parse_program(&params.source_file, &params.source)?;
     let mut buf = vec![];
 
+    if params.show_ast {
+        eprintln!("{stmts:?}");
+        return Ok(().into());
+    }
+
     match type_check(&stmts, &mut TypeCheckContext::new()) {
         Ok(_) => {
-            dprintln!("{}: Type-check Ok.", params.source_file)
+            // nothing to do
         }
         Err(e) => {
             return Err(format!(
@@ -140,10 +146,6 @@ fn eval_to_json(params: &Params) -> Result<serde_json::Value, Box<dyn std::error
     compiler.write_funcs(&mut std::io::Cursor::new(&mut buf))?;
 
     let bytecode = Rc::new(read_program(&mut std::io::Cursor::new(&mut buf))?);
-
-    if params.show_ast {
-        eprintln!("{stmts:?}");
-    }
 
     if params.check {
         eprintln!("{}: Compile Ok.", params.source_file);
@@ -173,14 +175,15 @@ fn eval_to_json(params: &Params) -> Result<serde_json::Value, Box<dyn std::error
     }
 
     let mut exports = serde_json::Map::with_capacity(vm.exports.len());
-
-    vm.exports.into_iter().for_each(|(name, value)| {
+    for (name, value) in vm.exports.into_iter() {
         match value {
+            Value::Null => {
+                exports.insert(name, serde_json::Value::Null);
+            }
             Value::Int(v) => {
                 exports.insert(name, json!(v));
             }
             Value::Num(v) => {
-                // if it seems like an integer, export it as an integer
                 if v.fract() == 0.0 {
                     exports.insert(name, json!(v as i64));
                 } else {
@@ -194,7 +197,7 @@ fn eval_to_json(params: &Params) -> Result<serde_json::Value, Box<dyn std::error
                 panic!("Cannot export the value: {:?}", value);
             }
         }
-    });
+    }
 
     Ok(serde_json::Value::Object(exports))
 }
@@ -218,6 +221,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ctor::ctor;
+
+    #[ctor]
+    fn init() {
+        set_debug(true);
+    }
 
     fn simple_eval(source: &str) -> serde_json::Value {
         let params: Params = Params {
@@ -227,7 +236,13 @@ mod tests {
             source_file: "test.ts".to_string(),
             source: source.to_string(),
         };
-        eval_to_json(&params).unwrap()
+        let result = eval_to_json(&params);
+        match result {
+            Ok(v) => v,
+            Err(e) => {
+                panic!("Error: {e}");
+            }
+        }
     }
 
     #[test]
@@ -254,17 +269,33 @@ mod tests {
         assert_eq!(result, json!({"x": "hello, world!\n"}));
     }
 
-
     #[test]
-    fn test_scalars() {
+    fn test_multiple_exports() {
         // multiple exports
-        let result = simple_eval(r#"
-            let export one = 1;
-            let export two = 2;
-            let export pi = 3.14;
-            let export hello = "world";
-        "#);
-        assert_eq!(result, json!({"one": 1, "two": 2, "pi": 3.14, "hello": "world"}));
+        let result = simple_eval(
+            r#"
+            export let one: number = 1;
+            export let two: number = 2;
+            export let pi: number = 3.14;
+            export let hello: string = "world";
+        "#,
+        );
+        assert_eq!(
+            result,
+            json!({"one": 1, "two": 2, "pi": 3.14, "hello": "world"})
+        );
     }
 
+    #[test]
+    fn test_adds() {
+        // multiple exports
+        let result = simple_eval(
+            r#"
+            let one: number = 1;
+            let two: number = 2;g
+            export let three: number = one + two;
+        "#,
+        );
+        assert_eq!(result, json!({"three": 3}));
+    }
 }

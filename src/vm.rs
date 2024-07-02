@@ -146,7 +146,7 @@ impl Vm {
         }
 
         if self.debug_output {
-            println!("Returning {}", res);
+            eprintln!("Returning {}", res);
         }
 
         let stack = &mut self.top_mut()?.stack;
@@ -168,7 +168,7 @@ impl Vm {
             };
 
             if self.debug_output {
-                println!(
+                eprintln!(
                     "interpret[{ip}]: {instruction:?} stack: {stack:?}",
                     stack = self.top()?.stack
                 );
@@ -322,10 +322,14 @@ impl Vm {
                     let stack = &mut self.top_mut()?.stack;
 
                     let value = stack.pop().expect("Export needs a value");
-                    let name = stack.pop().expect("Export needs a name");
+                    let name = stack.pop().expect("Export needs a name").must_be_str().expect("Export name must be a string").to_string();
+
+                    if self.debug_output {
+                        eprintln!("Exporting {name} as {value}");
+                    }
 
                     self.exports.insert(
-                        name.must_be_str().expect("Export name must be a string").to_string(),
+                        name,
                         value,
                     );
                 }
@@ -370,7 +374,7 @@ impl Vm {
 
     fn back_trace(&self) {
         for (i, frame) in self.stack_frames.iter().rev().enumerate() {
-            println!("[{}]: {:?}", i, frame.stack);
+            eprintln!("[{}]: {:?}", i, frame.stack);
         }
     }
 }

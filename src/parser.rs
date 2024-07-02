@@ -438,9 +438,9 @@ fn general_statement<'a>(
       const_def,
       var_assign,
       fn_def_statement,
-      terminated(return_statement, terminator),
-      terminated(yield_statement, terminator),
-      terminated(export_statement, terminator),
+      return_statement,
+      yield_statement,
+      export_statement,
       terminated(expr_statement, terminator),
     ))(input)
   }

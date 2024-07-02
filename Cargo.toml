@@ -15,4 +15,5 @@ serde = { version = "1.0" }
 indexmap = { version = "2.2" }
 
 [dev-dependencies]
+ctor = { version = "*" }
 
