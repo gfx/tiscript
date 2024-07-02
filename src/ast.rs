@@ -6,8 +6,9 @@ pub type Span<'a> = LocatedSpan<&'a str>;
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum TypeDecl {
   Any,
-  F64,
-  I64,
+  Null,
+  Num,
+  Int,
   Str,
   Coro,
 }

@@ -9,23 +9,25 @@ use crate::vm::Vm;
 
 #[repr(u8)]
 pub enum ValueKind {
-    F64,
-    I64,
-    Str,
-    Coro,
+    Null, // null
+    Num, // number
+    Int, // bigint (actually i64)
+    Str, // string
+    Coro, // TODO: generator function
 }
 
 #[derive(Debug, Clone)]
 pub enum Value {
-    F64(f64),
-    I64(i64),
+    Null,
+    Num(f64),
+    Int(i64),
     Str(String),
     Coro(Rc<RefCell<Vm>>),
 }
 
 impl Default for Value {
     fn default() -> Self {
-        Self::F64(0.)
+        Self::Null
     }
 }
 
@@ -33,8 +35,9 @@ impl PartialEq for Value {
     fn eq(&self, other: &Self) -> bool {
         use Value::*;
         match (self, other) {
-            (F64(lhs), F64(rhs)) => lhs == rhs,
-            (I64(lhs), I64(rhs)) => lhs == rhs,
+            (Null, Null) => true,
+            (Num(lhs), Num(rhs)) => lhs == rhs,
+            (Int(lhs), Int(rhs)) => lhs == rhs,
             (Str(lhs), Str(rhs)) => lhs == rhs,
             _ => false,
         }
@@ -44,8 +47,9 @@ impl PartialEq for Value {
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::F64(value) => write!(f, "{value}"),
-            Self::I64(value) => write!(f, "{value}"),
+            Self::Null => write!(f, "null"),
+            Self::Num(value) => write!(f, "{value}"),
+            Self::Int(value) => write!(f, "{value}"),
             Self::Str(value) => write!(f, "{value}"),
             Self::Coro(_) => write!(f, "<Coroutine>"),
         }
@@ -55,8 +59,9 @@ impl Display for Value {
 impl Value {
     fn kind(&self) -> ValueKind {
         match self {
-            Self::F64(_) => ValueKind::F64,
-            Self::I64(_) => ValueKind::I64,
+            Self::Null => ValueKind::Null,
+            Self::Num(_) => ValueKind::Num,
+            Self::Int(_) => ValueKind::Int,
             Self::Str(_) => ValueKind::Str,
             Self::Coro(_) => ValueKind::Coro,
         }
@@ -66,10 +71,13 @@ impl Value {
         let kind = self.kind() as u8;
         writer.write_all(&[kind])?;
         match self {
-            Self::F64(value) => {
+            Self::Null => {
+                // nothing to do
+            }
+            Self::Num(value) => {
                 writer.write_all(&value.to_le_bytes())?;
             }
-            Self::I64(value) => {
+            Self::Int(value) => {
                 writer.write_all(&value.to_le_bytes())?;
             }
             Self::Str(value) => {
@@ -87,22 +95,24 @@ impl Value {
 
     #[allow(non_upper_case_globals)]
     pub(crate) fn deserialize(reader: &mut impl Read) -> std::io::Result<Self> {
-        const F64: u8 = ValueKind::F64 as u8;
-        const I64: u8 = ValueKind::I64 as u8;
+        const Null: u8 = ValueKind::Null as u8;
+        const Num: u8 = ValueKind::Num as u8;
+        const Int: u8 = ValueKind::Int as u8;
         const Str: u8 = ValueKind::Str as u8;
 
         let mut kind_buf = [0u8; 1];
         reader.read_exact(&mut kind_buf)?;
         match kind_buf[0] {
-            F64 => {
+            Null => Ok(Value::Null),
+            Num => {
                 let mut buf = [0u8; std::mem::size_of::<f64>()];
                 reader.read_exact(&mut buf)?;
-                Ok(Value::F64(f64::from_le_bytes(buf)))
+                Ok(Value::Num(f64::from_le_bytes(buf)))
             }
-            I64 => {
+            Int => {
                 let mut buf = [0u8; std::mem::size_of::<i64>()];
                 reader.read_exact(&mut buf)?;
-                Ok(Value::I64(i64::from_le_bytes(buf)))
+                Ok(Value::Int(i64::from_le_bytes(buf)))
             }
             Str => Ok(Value::Str(deserialize_str(reader)?)),
             _ => Err(std::io::Error::new(
@@ -115,26 +125,26 @@ impl Value {
         }
     }
 
-    pub fn coerce_f64(&self) -> Result<f64, String> {
+    pub fn coerce_num(&self) -> Result<f64, String> {
         Ok(match self {
-            Self::F64(value) => *value,
-            Self::I64(value) => *value as f64,
+            Self::Num(value) => *value,
+            Self::Int(value) => *value as f64,
             _ => {
                 return Err(format!(
-                    "Coercion failed: {:?} cannot be coerced to f64",
+                    "Coercion failed: {:?} cannot be coerced to number",
                     self
                 ))
             }
         })
     }
 
-    pub fn coerce_i64(&self) -> Result<i64, String> {
+    pub fn coerce_int(&self) -> Result<i64, String> {
         Ok(match self {
-            Self::F64(value) => *value as i64,
-            Self::I64(value) => *value,
+            Self::Num(value) => *value as i64,
+            Self::Int(value) => *value,
             _ => {
                 return Err(format!(
-                    "Coercion failed: {:?} cannot be coerced to i64",
+                    "Coercion failed: {:?} cannot be coerced to bigint",
                     self
                 ))
             }
@@ -143,8 +153,8 @@ impl Value {
 
     pub fn coerce_str(&self) -> Result<String, String> {
         Ok(match self {
-            Self::F64(value) => format!("{value}"),
-            Self::I64(value) => format!("{value}"),
+            Self::Num(value) => format!("{value}"),
+            Self::Int(value) => format!("{value}"),
             Self::Str(value) => value.clone(),
             _ => {
                 return Err(format!(

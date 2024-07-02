@@ -1,9 +1,8 @@
 // The CLI reads the source code of Titys program from stdin or the first arg, evaluates it, and prints the result to stdout.
 
 use std::{
-    io::{BufRead, BufReader},
-    process::exit,
-    rc::Rc,
+    io::{BufRead, BufReader, Write},
+    process::exit, rc::Rc,
 };
 
 use serde_json::json;
@@ -19,15 +18,16 @@ use titys::{
 };
 
 struct Params {
-    pub check: bool, // -c: compile only
-    pub ast: bool,   // -a: show AST
+    pub check: bool,
+    pub show_ast: bool,
+    pub compact: bool,
     pub source_file: String,
     pub source: String,
 }
 
 fn show_help(cmd: &str, exit_code: i32) {
     print!(
-        r#"Usage: {cmd} [--check] [--show-ast] [--debug] [--eval <source>] [source.ts]
+        r#"Usage: {cmd} [--check] [--show-ast] [--compact|--pretty] [--debug] [--eval <source>] [source.ts]
 "#
     );
     exit(exit_code);
@@ -42,6 +42,7 @@ fn parse_params() -> Params {
     let mut source: Option<String> = None;
     let mut check = false;
     let mut ast = false;
+    let mut compact = false;
     let mut no_more_option = false;
 
     let mut next_arg = args.next();
@@ -49,6 +50,12 @@ fn parse_params() -> Params {
         match &arg as &str {
             "--check" => check = true,
             "--show-ast" => ast = true,
+            "--compact" => {
+                compact = true;
+            }
+            "--pretty" => {
+                compact = false;
+            }
             "--debug" => {
                 set_debug(true);
             }
@@ -101,16 +108,16 @@ fn parse_params() -> Params {
 
     Params {
         check,
-        ast,
+        show_ast: ast,
+        compact,
         source_file: source_file.unwrap(),
         source: source.unwrap(),
     }
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let params = parse_params();
-    let mut buf = vec![];
+fn eval_to_json(params: &Params) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
     let stmts = parse_program(&params.source_file, &params.source)?;
+    let mut buf = vec![];
 
     match type_check(&stmts, &mut TypeCheckContext::new()) {
         Ok(_) => {
@@ -134,16 +141,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let bytecode = Rc::new(read_program(&mut std::io::Cursor::new(&mut buf))?);
 
-    if params.ast {
-        println!("{stmts:?}");
+    if params.show_ast {
+        eprintln!("{stmts:?}");
     }
 
     if params.check {
-        println!("{}: Compile Ok.", params.source_file);
-        return Ok(());
+        eprintln!("{}: Compile Ok.", params.source_file);
+        return Ok(().into());
     }
 
-    let mut vm =Vm::new(bytecode, Box::new(()), is_debug());
+    let mut vm = Vm::new(bytecode, Box::new(()), is_debug());
     if let Err(e) = vm.init_fn("main", &[]) {
         eprintln!("init_fn error: {e:?}");
     }
@@ -169,11 +176,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     vm.exports.into_iter().for_each(|(name, value)| {
         match value {
-            Value::I64(v) => {
+            Value::Int(v) => {
                 exports.insert(name, json!(v));
             }
-            Value::F64(v) => {
-                exports.insert(name, json!(v));
+            Value::Num(v) => {
+                // if it seems like an integer, export it as an integer
+                if v.fract() == 0.0 {
+                    exports.insert(name, json!(v as i64));
+                } else {
+                    exports.insert(name, json!(v));
+                }
             }
             Value::Str(v) => {
                 exports.insert(name, json!(v));
@@ -184,8 +196,75 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    serde_json::to_writer_pretty(std::io::stdout(), &exports)?;
-    println!();
+    Ok(serde_json::Value::Object(exports))
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let params: Params = parse_params();
+    let exports = eval_to_json(&params)?;
+
+    let mut stdout = std::io::stdout().lock();
+    if params.compact {
+        serde_json::to_writer(&mut stdout, &exports)?;
+    } else {
+        serde_json::to_writer_pretty(&mut stdout, &exports)?;
+    }
+    stdout.write_all(b"\n")?;
 
     Ok(())
+}
+
+// test eval_to_json()
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn simple_eval(source: &str) -> serde_json::Value {
+        let params: Params = Params {
+            check: false,
+            show_ast: false,
+            compact: false,
+            source_file: "test.ts".to_string(),
+            source: source.to_string(),
+        };
+        eval_to_json(&params).unwrap()
+    }
+
+    #[test]
+    fn test_scalar_num_int() {
+        let result = simple_eval("export let x: number = 42;");
+        assert_eq!(result, json!({"x": 42}));
+    }
+
+    #[test]
+    fn test_scalar_num_fract() {
+        let result = simple_eval("export let x: number = 3.14;");
+        assert_eq!(result, json!({"x": 3.14}));
+    }
+
+    #[test]
+    fn test_scalar_str_simple() {
+        let result = simple_eval("export let x: string = \"hello, world!\";");
+        assert_eq!(result, json!({"x": "hello, world!"}));
+    }
+
+    #[test]
+    fn test_scalar_str_with_escapes() {
+        let result = simple_eval("export let x: string = \"hello, world!\\n\";");
+        assert_eq!(result, json!({"x": "hello, world!\n"}));
+    }
+
+
+    #[test]
+    fn test_scalars() {
+        // multiple exports
+        let result = simple_eval(r#"
+            let export one = 1;
+            let export two = 2;
+            let export pi = 3.14;
+            let export hello = "world";
+        "#);
+        assert_eq!(result, json!({"one": 1, "two": 2, "pi": 3.14, "hello": "world"}));
+    }
+
 }

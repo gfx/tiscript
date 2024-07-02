@@ -287,13 +287,13 @@ pub(crate) fn standard_functions<'src>() -> Functions<'src> {
     "i64".to_string(),
     FnDecl::Native(NativeFn {
       args: vec![("arg", TypeDecl::Any)],
-      ret_type: TypeDecl::I64,
+      ret_type: TypeDecl::Int,
       code: Box::new(move |_, args| {
-        Value::I64(
+        Value::Int(
           args
             .first()
             .expect("function missing argument")
-            .coerce_i64()
+            .coerce_int()
             .unwrap_or(0),
         )
       }),
@@ -303,13 +303,13 @@ pub(crate) fn standard_functions<'src>() -> Functions<'src> {
     "f64".to_string(),
     FnDecl::Native(NativeFn {
       args: vec![("arg", TypeDecl::Any)],
-      ret_type: TypeDecl::F64,
+      ret_type: TypeDecl::Num,
       code: Box::new(move |_, args| {
-        Value::F64(
+        Value::Num(
           args
             .first()
             .expect("function missing argument")
-            .coerce_f64()
+            .coerce_num()
             .unwrap_or(0.),
         )
       }),
@@ -336,14 +336,14 @@ pub(crate) fn standard_functions<'src>() -> Functions<'src> {
 
 fn unary_fn<'a>(f: fn(f64) -> f64) -> FnDecl<'a> {
   FnDecl::Native(NativeFn {
-    args: vec![("lhs", TypeDecl::F64), ("rhs", TypeDecl::F64)],
-    ret_type: TypeDecl::F64,
+    args: vec![("lhs", TypeDecl::Num), ("rhs", TypeDecl::Num)],
+    ret_type: TypeDecl::Num,
     code: Box::new(move |_, args| {
-      Value::F64(f(args
+      Value::Num(f(args
         .into_iter()
         .next()
         .expect("function missing argument")
-        .coerce_f64()
+        .coerce_num()
         .unwrap()))
     }),
   })
@@ -351,21 +351,21 @@ fn unary_fn<'a>(f: fn(f64) -> f64) -> FnDecl<'a> {
 
 fn binary_fn<'a>(f: fn(f64, f64) -> f64) -> FnDecl<'a> {
   FnDecl::Native(NativeFn {
-    args: vec![("lhs", TypeDecl::F64), ("rhs", TypeDecl::F64)],
-    ret_type: TypeDecl::F64,
+    args: vec![("lhs", TypeDecl::Num), ("rhs", TypeDecl::Num)],
+    ret_type: TypeDecl::Num,
     code: Box::new(move |_, args| {
       let mut args = args.into_iter();
       let lhs = args
         .next()
         .expect("function missing the first argument")
-        .coerce_f64()
+        .coerce_num()
         .unwrap();
       let rhs = args
         .next()
         .expect("function missing the second argument")
-        .coerce_f64()
+        .coerce_num()
         .unwrap();
-      Value::F64(f(lhs, rhs))
+      Value::Num(f(lhs, rhs))
     }),
   })
 }
@@ -375,19 +375,19 @@ fn print_fn(_: &dyn Any, args: &[Value]) -> Value {
     print!("{} ", arg);
   }
   println!("");
-  Value::F64(0.)
+  Value::Num(0.)
 }
 
 fn dbg_fn(_: &dyn Any, values: &[Value]) -> Value {
   println!("dbg: {:?}", values[0]);
-  Value::I64(0)
+  Value::Int(0)
 }
 
 fn puts_fn(_: &dyn Any, args: &[Value]) -> Value {
   for arg in args {
     print!("{}", arg);
   }
-  Value::F64(0.)
+  Value::Num(0.)
 }
 
 pub struct ByteCode {

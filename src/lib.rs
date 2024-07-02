@@ -27,14 +27,14 @@ pub fn set_debug(debug: bool) {
 macro_rules! dprintln {
     ($fmt:literal) => {
         if ::titys::is_debug() {
-            print!("[{}] ", ::titys::TAG);
-            println!($fmt);
+            eprint!("[{}] ", ::titys::TAG);
+            eprintln!($fmt);
         }
     };
     ($fmt:literal, $($args:expr),*) => {
         if ::titys::is_debug() {
-            print!("[{}] ", ::titys::TAG);
-            println!($fmt, $($args),*);
+            eprint!("[{}] ", ::titys::TAG);
+            eprintln!($fmt, $($args),*);
         }
     };
 }

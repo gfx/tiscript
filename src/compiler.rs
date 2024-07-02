@@ -1,10 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    error::Error,
-    io::Write,
-    process::abort,
-    rc::Rc,
-};
+use std::{collections::HashMap, error::Error, io::Write, process::abort, rc::Rc};
 
 use crate::{
     ast::{ExprEnum, Expression, Span, Statement, Statements, TypeDecl},
@@ -34,7 +28,6 @@ pub struct Compiler {
     instructions: Vec<Instruction>,
     target_stack: Vec<Target>,
     funcs: HashMap<String, FnByteCode>,
-    exports: HashSet<String>,
 }
 
 impl Compiler {
@@ -44,7 +37,6 @@ impl Compiler {
             instructions: vec![],
             target_stack: vec![],
             funcs: Default::default(),
-            exports: Default::default(),
         }
     }
 
@@ -169,7 +161,7 @@ impl Compiler {
     fn compile_expr(&mut self, ex: &Expression) -> Result<StkIdx, Box<dyn Error>> {
         Ok(match &ex.expr {
             ExprEnum::NumLiteral(num) => {
-                let id = self.add_literal(Value::F64(*num));
+                let id = self.add_literal(Value::Num(*num));
                 self.add_load_literal_inst(id);
                 self.stack_top()
             }
@@ -377,7 +369,7 @@ impl Compiler {
 
     fn compile_stmts_or_zero(&mut self, stmts: &Statements) -> Result<StkIdx, Box<dyn Error>> {
         Ok(self.compile_stmts(stmts)?.unwrap_or_else(|| {
-            let id = self.add_literal(Value::F64(0.));
+            let id = self.add_literal(Value::Num(0.));
             self.add_load_literal_inst(id);
             self.stack_top()
         }))

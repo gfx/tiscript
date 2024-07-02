@@ -150,7 +150,7 @@ impl Vm {
         }
 
         let stack = &mut self.top_mut()?.stack;
-        stack.resize(stack.len() - args - 1, Value::F64(0.));
+        stack.resize(stack.len() - args - 1, Value::Num(0.));
         stack.push(res);
         self.top_mut()?.ip += 1;
         Ok(None)
@@ -242,7 +242,7 @@ impl Vm {
                                 let stack = &mut self.top_mut()?.stack;
                                 stack.resize(
                                     stack.len() - instruction.arg0 as usize - 1,
-                                    Value::F64(0.),
+                                    Value::Num(0.),
                                 );
                                 stack.push(Value::Coro(Rc::new(RefCell::new(vm))));
                             } else {
@@ -256,7 +256,7 @@ impl Vm {
                             let stack = &mut self.top_mut()?.stack;
                             stack.resize(
                                 stack.len() - instruction.arg0 as usize - 1,
-                                Value::F64(0.),
+                                Value::Num(0.),
                             );
                             stack.push(res);
                         }
@@ -269,7 +269,7 @@ impl Vm {
                 OpCode::Jf => {
                     let stack = &mut self.top_mut()?.stack;
                     let cond = stack.pop().expect("Jf needs an argument");
-                    if cond.coerce_f64() == Ok(0.) {
+                    if cond.coerce_num() == Ok(0.) {
                         self.top_mut()?.ip = instruction.arg0 as usize;
                         continue;
                     }
@@ -344,10 +344,10 @@ impl Vm {
         let rhs = stack.pop().expect("Stack underflow");
         let lhs = stack.pop().expect("Stack underflow");
         let res = match (lhs, rhs) {
-            (F64(lhs), F64(rhs)) => F64(op_f64(lhs, rhs)),
-            (I64(lhs), I64(rhs)) => I64(op_i64(lhs, rhs)),
-            (F64(lhs), I64(rhs)) => F64(op_f64(lhs, rhs as f64)),
-            (I64(lhs), F64(rhs)) => F64(op_f64(lhs as f64, rhs)),
+            (Num(lhs), Num(rhs)) => Num(op_f64(lhs, rhs)),
+            (Int(lhs), Int(rhs)) => Int(op_i64(lhs, rhs)),
+            (Num(lhs), Int(rhs)) => Num(op_f64(lhs, rhs as f64)),
+            (Int(lhs), Num(rhs)) => Num(op_f64(lhs as f64, rhs)),
             (Str(lhs), Str(rhs)) => {
                 if let Some(res) = op_str(&lhs, &rhs) {
                     Str(res)

@@ -343,9 +343,10 @@ fn type_decl(i: Span) -> IResult<Span, TypeDecl> {
   Ok((
     i,
     match *td.fragment() {
-      "i64" => TypeDecl::I64,
-      "f64" => TypeDecl::F64,
-      "str" => TypeDecl::Str,
+      "null" => TypeDecl::Null,
+      "bigint" => TypeDecl::Int,
+      "number" => TypeDecl::Num,
+      "string" => TypeDecl::Str,
       "cofn" => TypeDecl::Coro,
       _ => {
         return Err(nom::Err::Failure(nom::error::Error::new(

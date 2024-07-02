@@ -97,9 +97,9 @@ fn tc_coerce_type<'src>(
   Ok(match (value, target) {
     (_, Any) => value.clone(),
     (Any, _) => target.clone(),
-    (F64 | I64, F64) => F64,
-    (F64, I64) => F64,
-    (I64, I64) => I64,
+    (Num | Int, Num) => Num,
+    (Num, Int) => Num,
+    (Int, Int) => Int,
     (Str, Str) => Str,
     (Coro, Coro) => Coro,
     _ => {
@@ -141,8 +141,8 @@ fn binary_op_type(
   Ok(match (lhs, rhs) {
     (Any, _) => Any,
     (_, Any) => Any,
-    (I64, I64) => I64,
-    (F64 | I64, F64 | I64) => F64,
+    (Int, Int) => Int,
+    (Num | Int, Num | Int) => Num,
     (Str, Str) => Str,
     _ => return Err(()),
   })
@@ -158,11 +158,11 @@ fn tc_binary_cmp<'src>(
   let lhst = tc_expr(lhs, ctx)?;
   let rhst = tc_expr(rhs, ctx)?;
   Ok(match (&lhst, &rhst) {
-      (Any, _) => I64,
-      (_, Any) => I64,
-      (F64, F64) => I64,
-      (I64, I64) => I64,
-      (Str, Str) => I64,
+      (Any, _) => Int,
+      (_, Any) => Int,
+      (Num, Num) => Int,
+      (Int, Int) => Int,
+      (Str, Str) => Int,
       _ => {
         return Err(TypeCheckError::new(
           format!(
@@ -181,7 +181,7 @@ fn tc_expr<'src>(
 ) -> Result<TypeDecl, TypeCheckError<'src>> {
   use ExprEnum::*;
   Ok(match &e.expr {
-    NumLiteral(_val) => TypeDecl::F64,
+    NumLiteral(_val) => TypeDecl::Num,
     StrLiteral(_val) => TypeDecl::Str,
     Ident(str) => ctx.get_var(str).ok_or_else(|| {
       TypeCheckError::new(
@@ -217,7 +217,7 @@ fn tc_expr<'src>(
     If(cond, true_branch, false_branch) => {
       tc_coerce_type(
         &tc_expr(cond, ctx)?,
-        &TypeDecl::I64,
+        &TypeDecl::Int,
         cond.span,
       )?;
       let true_type = type_check(true_branch, ctx)?;
