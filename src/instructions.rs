@@ -5,6 +5,7 @@ use std::io::{Read, Write};
 pub enum OpCode {
   LoadLiteral,
   Store,
+  // Push the value of the index arg0 in the stack to the top of the stack.
   Copy,
   /// Duplicate the value on the top of the stack arg0 times
   Dup,
@@ -26,6 +27,8 @@ pub enum OpCode {
   Yield,
   /// Await a coroutine in progress until the next yield
   Await,
+  /// Export a symbol in a statement
+  Export,
 }
 
 macro_rules! impl_op_from {
@@ -60,7 +63,8 @@ impl_op_from!(
   Pop,
   Ret,
   Yield,
-  Await
+  Await,
+  Export
 );
 
 #[derive(Debug, Clone, Copy)]

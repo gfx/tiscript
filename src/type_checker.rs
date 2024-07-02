@@ -273,7 +273,7 @@ pub fn type_check<'src>(
         args,
         ret_type,
         stmts,
-        cofn,
+        is_cofn,
       } => {
         // Function declaration needs to be added first to allow recursive calls
         ctx.funcs.insert(
@@ -281,7 +281,7 @@ pub fn type_check<'src>(
           FnDecl::User(UserFn::new(
             args.clone(),
             *ret_type,
-            *cofn,
+            *is_cofn,
           )),
         );
         let mut subctx = TypeCheckContext::push_stack(ctx);
@@ -294,36 +294,15 @@ pub fn type_check<'src>(
       Statement::Expression(e) => {
         res = tc_expr(&e, ctx)?;
       }
-      Statement::For {
-        loop_var,
-        start,
-        end,
-        stmts,
-        ..
-      } => {
-        tc_coerce_type(
-          &tc_expr(start, ctx)?,
-          &TypeDecl::I64,
-          start.span,
-        )?;
-        tc_coerce_type(
-          &tc_expr(end, ctx)?,
-          &TypeDecl::I64,
-          end.span,
-        )?;
-        ctx.vars.insert(loop_var, TypeDecl::I64);
-        res = type_check(stmts, ctx)?;
-      }
       Statement::Return(e) => {
         return tc_expr(e, ctx);
       }
-      Statement::Break => {
-        // TODO: check types in break out site. For now we disallow break with values like Rust.
-      }
-      Statement::Continue => (),
       Statement::Yield(e) => {
         tc_expr(e, ctx)?;
         // TODO: check type with the return type, but don't escape from this function.
+      }
+      Statement::Export(stmts) => {
+        res = type_check(stmts, ctx)?;
       }
     }
   }

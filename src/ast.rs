@@ -52,30 +52,23 @@ pub enum Statement<'src> {
     name: Span<'src>,
     td: TypeDecl,
     ex: Expression<'src>,
+    is_const: bool,
   },
   VarAssign {
     span: Span<'src>,
     name: Span<'src>,
     ex: Expression<'src>,
   },
-  For {
-    span: Span<'src>,
-    loop_var: Span<'src>,
-    start: Expression<'src>,
-    end: Expression<'src>,
-    stmts: Statements<'src>,
-  },
-  Break,
-  Continue,
   FnDef {
     name: Span<'src>,
     args: Vec<(Span<'src>, TypeDecl)>,
     ret_type: TypeDecl,
     stmts: Statements<'src>,
-    cofn: bool,
+    is_cofn: bool,
   },
   Return(Expression<'src>),
   Yield(Expression<'src>),
+  Export(Statements<'src>), // stmts.len() == 1
 }
 
 impl<'src> Statement<'src> {
@@ -85,14 +78,12 @@ impl<'src> Statement<'src> {
       Expression(ex) => ex.span,
       VarDef { span, .. } => *span,
       VarAssign { span, .. } => *span,
-      For { span, .. } => *span,
       FnDef { name, stmts, .. } => {
         calc_offset(*name, stmts.span())
       }
       Return(ex) => ex.span,
-      Break => return None,
-      Continue => return None,
       Yield(ex) => ex.span,
+      Export(stmts) => stmts[0].span().unwrap(),
     })
   }
 }

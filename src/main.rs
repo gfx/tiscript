@@ -6,6 +6,8 @@ use std::{
     rc::Rc,
 };
 
+use serde_json::json;
+
 use titys::{
     compiler::Compiler,
     dprintln,
@@ -40,6 +42,7 @@ fn parse_params() -> Params {
     let mut source: Option<String> = None;
     let mut check = false;
     let mut ast = false;
+    let mut no_more_option = false;
 
     let mut next_arg = args.next();
     while let Some(arg) = next_arg {
@@ -58,7 +61,13 @@ fn parse_params() -> Params {
                 }
             }
             "--help" => show_help(&cmd, 0),
+            "--" => no_more_option = true,
             _ => {
+                if !no_more_option && arg.starts_with('-') {
+                    println!("Unknown option: {arg}");
+                    show_help(&cmd, 1);
+                }
+
                 if source_file.is_none() && !is_eval {
                     source_file = Some(arg);
                 } else {
@@ -127,7 +136,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if params.ast {
         println!("{stmts:?}");
-        return Ok(());
     }
 
     if params.check {
@@ -156,6 +164,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
     }
+
+    let mut exports = serde_json::Map::with_capacity(vm.exports.len());
+
+    vm.exports.into_iter().for_each(|(name, value)| {
+        match value {
+            Value::I64(v) => {
+                exports.insert(name, json!(v));
+            }
+            Value::F64(v) => {
+                exports.insert(name, json!(v));
+            }
+            Value::Str(v) => {
+                exports.insert(name, json!(v));
+            }
+            _ => {
+                panic!("Cannot export the value: {:?}", value);
+            }
+        }
+    });
+
+    serde_json::to_writer_pretty(std::io::stdout(), &exports)?;
+    println!();
 
     Ok(())
 }

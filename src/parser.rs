@@ -88,6 +88,8 @@ fn identifier(input: Span) -> IResult<Span, Span> {
   ))(input)
 }
 
+// TODO: parses single-quoted string literals
+// TODO: parses template string literals
 fn str_literal(i: Span) -> IResult<Span, Expression> {
   let (r0, _) = preceded(multispace0, char('\"'))(i)?;
   let (r, val) = many0(none_of("\""))(r0)?;
@@ -100,7 +102,12 @@ fn str_literal(i: Span) -> IResult<Span, Expression> {
           .iter()
           .collect::<String>()
           .replace("\\\\", "\\")
-          .replace("\\n", "\n"),
+          .replace("\\n", "\n")
+          .replace("\\r", "\r")
+          .replace("\\t", "\t")
+          .replace("\\\"", "\"")
+          .replace("\\'", "'"),
+          // TODO: let it ES262-compatible
       ),
       i,
     ),
@@ -260,10 +267,10 @@ fn expr(i: Span) -> IResult<Span, Expression> {
   alt((await_expr, if_expr, cond_expr, num_expr))(i)
 }
 
-fn var_def(i: Span) -> IResult<Span, Statement> {
+fn let_def(i: Span) -> IResult<Span, Statement> {
   let span = i;
   let (i, _) =
-    delimited(multispace0, tag("var"), multispace1)(i)?;
+    delimited(multispace0, tag("let"), multispace1)(i)?;
   let (i, (name, td, ex)) = cut(|i| {
     let (i, name) = space_delimited(identifier)(i)?;
     let (i, _) = space_delimited(char(':'))(i)?;
@@ -280,6 +287,32 @@ fn var_def(i: Span) -> IResult<Span, Statement> {
       name,
       td,
       ex,
+      is_const: false,
+    },
+  ))
+}
+
+fn const_def(i: Span) -> IResult<Span, Statement> {
+  let span = i;
+  let (i, _) =
+    delimited(multispace0, tag("let"), multispace1)(i)?;
+  let (i, (name, td, ex)) = cut(|i| {
+    let (i, name) = space_delimited(identifier)(i)?;
+    let (i, _) = space_delimited(char(':'))(i)?;
+    let (i, td) = type_decl(i)?;
+    let (i, _) = space_delimited(char('='))(i)?;
+    let (i, ex) = space_delimited(expr)(i)?;
+    let (i, _) = space_delimited(char(';'))(i)?;
+    Ok((i, (name, td, ex)))
+  })(i)?;
+  Ok((
+    i,
+    Statement::VarDef {
+      span: calc_offset(span, i),
+      name,
+      td,
+      ex,
+      is_const: true,
     },
   ))
 }
@@ -303,31 +336,6 @@ fn var_assign(i: Span) -> IResult<Span, Statement> {
 fn expr_statement(i: Span) -> IResult<Span, Statement> {
   let (i, res) = expr(i)?;
   Ok((i, Statement::Expression(res)))
-}
-
-fn for_statement(i: Span) -> IResult<Span, Statement> {
-  let i0 = i;
-  let (i, _) = space_delimited(tag("for"))(i)?;
-  let (i, (loop_var, start, end, stmts)) = cut(|i| {
-    let (i, loop_var) = space_delimited(identifier)(i)?;
-    let (i, _) = space_delimited(tag("in"))(i)?;
-    let (i, start) = space_delimited(expr)(i)?;
-    let (i, _) = space_delimited(tag("to"))(i)?;
-    let (i, end) = space_delimited(expr)(i)?;
-    let (i, stmts) =
-      delimited(open_brace, statements, close_brace)(i)?;
-    Ok((i, (loop_var, start, end, stmts)))
-  })(i)?;
-  Ok((
-    i,
-    Statement::For {
-      span: calc_offset(i0, i),
-      loop_var,
-      start,
-      end,
-      stmts,
-    },
-  ))
 }
 
 fn type_decl(i: Span) -> IResult<Span, TypeDecl> {
@@ -359,7 +367,7 @@ fn argument(i: Span) -> IResult<Span, (Span, TypeDecl)> {
 
 fn fn_def_statement(i: Span) -> IResult<Span, Statement> {
   let (i, fn_kw) =
-    space_delimited(alt((tag("cofn"), tag("fn"))))(i)?;
+    space_delimited(alt((tag("cofn"), tag("function"))))(i)?;
   let (i, (name, args, ret_type, stmts)) = cut(|i| {
     let (i, name) = space_delimited(identifier)(i)?;
     let (i, _) = space_delimited(tag("("))(i)?;
@@ -379,25 +387,31 @@ fn fn_def_statement(i: Span) -> IResult<Span, Statement> {
       args,
       ret_type,
       stmts,
-      cofn: *fn_kw == "cofn",
+      is_cofn: *fn_kw == "cofn",
     },
   ))
+}
+
+fn export_statement(i: Span) -> IResult<Span, Statement> {
+  let (i, _) = space_delimited(tag("export"))(i)?;
+  let (i, stmt) = statement(i)?;
+  // check the statement includes either a variable definition or a function definition.
+  match &stmt {
+    Statement::VarDef { .. } | Statement::FnDef { .. } => {}
+    _ => {
+      return Err(nom::Err::Failure(nom::error::Error::new(
+        i,
+        nom::error::ErrorKind::Verify,
+      )));
+    }
+  }
+  Ok((i, Statement::Export(vec![stmt])))
 }
 
 fn return_statement(i: Span) -> IResult<Span, Statement> {
   let (i, _) = space_delimited(tag("return"))(i)?;
   let (i, ex) = space_delimited(expr)(i)?;
   Ok((i, Statement::Return(ex)))
-}
-
-fn break_statement(i: Span) -> IResult<Span, Statement> {
-  let (i, _) = space_delimited(tag("break"))(i)?;
-  Ok((i, Statement::Break))
-}
-
-fn continue_statement(i: Span) -> IResult<Span, Statement> {
-  let (i, _) = space_delimited(tag("continue"))(i)?;
-  Ok((i, Statement::Continue))
 }
 
 fn yield_statement(i: Span) -> IResult<Span, Statement> {
@@ -419,14 +433,13 @@ fn general_statement<'a>(
   };
   move |input| {
     alt((
-      var_def,
+      let_def,
+      const_def,
       var_assign,
       fn_def_statement,
-      for_statement,
       terminated(return_statement, terminator),
-      terminated(break_statement, terminator),
-      terminated(continue_statement, terminator),
       terminated(yield_statement, terminator),
+      terminated(export_statement, terminator),
       terminated(expr_statement, terminator),
     ))(input)
   }
