@@ -39,7 +39,15 @@ pub(crate) fn calc_offset<'a>(i: Span<'a>, r: Span<'a>) -> Span<'a> {
 }
 
 fn factor(i: Span) -> IResult<Span, Expression> {
-    alt((dq_str_literal, sq_str_literal, tmpl_str_literal, num_literal, func_call, ident, parens))(i)
+    alt((
+        dq_str_literal,
+        sq_str_literal,
+        tmpl_str_literal,
+        num_literal,
+        func_call,
+        ident,
+        parens,
+    ))(i)
 }
 
 fn func_call(i: Span) -> IResult<Span, Expression> {
@@ -86,7 +94,7 @@ fn process_str_literal(input: Vec<char>) -> String {
         .replace("\\t", "\t")
         .replace("\\\"", "\"")
         .replace("\\'", "'")
-    // TODO: let it ES262-compatible
+    // TODO: let it ECMA262-compatible
 }
 
 fn dq_str_literal(i: Span) -> IResult<Span, Expression> {
@@ -119,7 +127,6 @@ fn tmpl_str_literal(i: Span) -> IResult<Span, Expression> {
         Expression::new(ExprEnum::StrLiteral(process_str_literal(val)), i),
     ))
 }
-
 
 fn num_literal(input: Span) -> IResult<Span, Expression> {
     let (r, v) = space_delimited(recognize_float)(input)?;
