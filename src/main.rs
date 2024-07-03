@@ -258,21 +258,45 @@ mod tests {
     }
 
     #[test]
-    fn test_scalar_str_simple() {
+    fn test_scalar_dq_str_simple() {
         let result = simple_eval("export let x: string = \"hello, world!\";");
         assert_eq!(result, json!({"x": "hello, world!"}));
     }
 
     #[test]
-    fn test_scalar_str_with_escapes() {
+    fn test_scalar_dq_str_empty() {
+        let result = simple_eval("export let x: string = \"hello, world!\";");
+        assert_eq!(result, json!({"x": "hello, world!"}));
+    }
+
+    #[test]
+    fn test_scalar_dq_str_with_newline_escapes() {
         let result = simple_eval("export let x: string = \"hello, world!\\n\";");
         assert_eq!(result, json!({"x": "hello, world!\n"}));
+    }
+
+    #[test]
+    fn test_scalar_dq_str_with_unicode_escapes() {
+        let result = simple_eval("export let x: string = \"hello, \\u{2126}!\";");
+        assert_eq!(result, json!({"x": "hello, Ω!"})); // U+2126: Ohm sign
+    }
+
+    #[test]
+    fn test_scalar_sq_str_empty() {
+        let result = simple_eval("export let x: string = '';");
+        assert_eq!(result, json!({"x": ""}));
     }
 
     #[test]
     fn test_scalar_sq_str_with_escapes() {
         let result = simple_eval("export let x: string = 'hello, world!\\n';");
         assert_eq!(result, json!({"x": "hello, world!\n"}));
+    }
+
+    #[test]
+    fn test_scalar_sq_str_with_unicode_escapes() {
+        let result = simple_eval("export let x: string = 'hello, \\u{2126}!';");
+        assert_eq!(result, json!({"x": "hello, Ω!"})); // U+2126: Ohm sign
     }
 
     #[test]

@@ -1,8 +1,8 @@
 use nom::{
     branch::alt,
-    bytes::complete::tag,
-    character::complete::{alpha1, alphanumeric1, char, multispace0, multispace1, none_of},
-    combinator::{cut, map_res, opt, recognize},
+    bytes::complete::{is_not, tag, take_while_m_n},
+    character::complete::{alpha1, alphanumeric1, char, multispace0, multispace1},
+    combinator::{cut, map, map_opt, map_res, opt, recognize, value, verify},
     error::ParseError,
     multi::{fold_many0, many0, separated_list0},
     number::complete::recognize_float,
@@ -84,48 +84,119 @@ fn identifier(input: Span) -> IResult<Span, Span> {
     ))(input)
 }
 
-fn process_str_literal(input: Vec<char>) -> String {
-    input
-        .iter()
-        .collect::<String>()
-        .replace("\\\\", "\\")
-        .replace("\\n", "\n")
-        .replace("\\r", "\r")
-        .replace("\\t", "\t")
-        .replace("\\\"", "\"")
-        .replace("\\'", "'")
-    // TODO: let it ECMA262-compatible
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum StrFragment<'a> {
+    Literal(Span<'a>),
+    EscapedChar(char),
 }
 
+fn parse_unicode<'a>(input: Span<'a>) -> IResult<Span<'a>, char> {
+    let parse_hex = take_while_m_n(1, 6, |c: char| c.is_ascii_hexdigit());
+
+    let parse_delimited_hex = preceded(char('u'), delimited(char('{'), parse_hex, char('}')));
+
+    let parse_u32 = map_res(parse_delimited_hex, move |hex: Span| {
+        u32::from_str_radix(hex.fragment(), 16)
+    });
+
+    map_opt(parse_u32, |value| std::char::from_u32(value))(input)
+}
+
+fn parse_escaped_char<'a>(input: Span<'a>) -> IResult<Span<'a>, char> {
+    preceded(
+        char('\\'),
+        alt((
+            parse_unicode,
+            value('\n', char('n')),
+            value('\r', char('r')),
+            value('\t', char('t')),
+            value('\\', char('\\')),
+            value('/', char('/')),
+            value('"', char('"')),
+            value('\'', char('\'')),
+        )),
+    )(input)
+}
+
+fn parse_dq_literal<'a>(input: Span<'a>) -> IResult<Span, Span> {
+    let not_quote_slash = is_not("\"\\");
+    verify(not_quote_slash, |s: &Span| !s.is_empty())(input)
+}
+
+fn parse_dq_fragment<'a>(input: Span<'a>) -> IResult<Span<'a>, StrFragment<'a>> {
+    alt((
+        // The `map` combinator runs a parser, then applies a function to the output
+        // of that parser.
+        map(parse_dq_literal, StrFragment::Literal),
+        map(parse_escaped_char, StrFragment::EscapedChar),
+    ))(input)
+}
+
+fn parse_sq_literal<'a>(input: Span<'a>) -> IResult<Span, Span> {
+    let not_quote_slash = is_not("\'\\");
+    verify(not_quote_slash, |s: &Span| !s.is_empty())(input)
+}
+
+fn parse_sq_fragment<'a>(input: Span<'a>) -> IResult<Span<'a>, StrFragment<'a>> {
+    alt((
+        map(parse_sq_literal, StrFragment::Literal),
+        map(parse_escaped_char, StrFragment::EscapedChar),
+    ))(input)
+}
+
+fn parse_tmpl_literal<'a>(input: Span<'a>) -> IResult<Span, Span> {
+    let not_quote_slash = is_not("`\\");
+    verify(not_quote_slash, |s: &Span| !s.is_empty())(input)
+}
+
+fn parse_tmpl_fragment<'a>(input: Span<'a>) -> IResult<Span<'a>, StrFragment<'a>> {
+    alt((
+        map(parse_tmpl_literal, StrFragment::Literal),
+        map(parse_escaped_char, StrFragment::EscapedChar),
+    ))(input)
+}
+
+/// parse a double-quoted string literal
 fn dq_str_literal(i: Span) -> IResult<Span, Expression> {
-    let (r0, _) = preceded(multispace0, char('"'))(i)?;
-    let (r, val) = many0(none_of("\""))(r0)?;
-    let (r, _) = terminated(char('"'), multispace0)(r)?;
-    Ok((
-        r,
-        Expression::new(ExprEnum::StrLiteral(process_str_literal(val)), i),
-    ))
+    let build_string = fold_many0(parse_dq_fragment, String::new, |mut string, fragment| {
+        match fragment {
+            StrFragment::Literal(s) => string.push_str(s.fragment()),
+            StrFragment::EscapedChar(c) => string.push(c),
+        }
+        string
+    });
+
+    let (r, val) = delimited(char('"'), build_string, char('"'))(i)?;
+    Ok((r, Expression::new(ExprEnum::StrLiteral(val), i)))
 }
 
+/// parse a single-quoted string literal
 fn sq_str_literal(i: Span) -> IResult<Span, Expression> {
-    let (r0, _) = preceded(multispace0, char('\''))(i)?;
-    let (r, val) = many0(none_of("\'"))(r0)?;
-    let (r, _) = terminated(char('\''), multispace0)(r)?;
-    Ok((
-        r,
-        Expression::new(ExprEnum::StrLiteral(process_str_literal(val)), i),
-    ))
+    let build_string = fold_many0(parse_sq_fragment, String::new, |mut string, fragment| {
+        match fragment {
+            StrFragment::Literal(s) => string.push_str(s.fragment()),
+            StrFragment::EscapedChar(c) => string.push(c),
+        }
+        string
+    });
+
+    let (r, val) = delimited(char('\''), build_string, char('\''))(i)?;
+    Ok((r, Expression::new(ExprEnum::StrLiteral(val), i)))
 }
 
+/// parse a template string literal
 // TODO: implement interpolation of expressions (`${expr}`).
 fn tmpl_str_literal(i: Span) -> IResult<Span, Expression> {
-    let (r0, _) = preceded(multispace0, char('`'))(i)?;
-    let (r, val) = many0(none_of("\\`"))(r0)?;
-    let (r, _) = terminated(char('`'), multispace0)(r)?;
-    Ok((
-        r,
-        Expression::new(ExprEnum::StrLiteral(process_str_literal(val)), i),
-    ))
+    let build_string = fold_many0(parse_tmpl_fragment, String::new, |mut string, fragment| {
+        match fragment {
+            StrFragment::Literal(s) => string.push_str(s.fragment()),
+            StrFragment::EscapedChar(c) => string.push(c),
+        }
+        string
+    });
+
+    let (r, val) = delimited(char('`'), build_string, char('`'))(i)?;
+    Ok((r, Expression::new(ExprEnum::StrLiteral(val), i)))
 }
 
 fn num_literal(input: Span) -> IResult<Span, Expression> {
