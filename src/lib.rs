@@ -1,10 +1,10 @@
 pub mod ast;
 pub mod bytecode;
 pub mod compiler;
-pub mod file_io;
 pub mod instructions;
 pub mod parser;
 pub mod type_checker;
+pub mod util;
 pub mod value;
 pub mod vm;
 

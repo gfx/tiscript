@@ -160,6 +160,21 @@ impl Compiler {
 
     fn compile_expr(&mut self, ex: &Expression) -> Result<StkIdx, Box<dyn Error>> {
         Ok(match &ex.expr {
+            ExprEnum::UndefinedLiteral => {
+                let id = self.add_literal(Value::Undefined);
+                self.add_load_literal_inst(id);
+                self.stack_top()
+            }
+            ExprEnum::NullLiteral => {
+                let id = self.add_literal(Value::Null);
+                self.add_load_literal_inst(id);
+                self.stack_top()
+            }
+            ExprEnum::BoolLiteral(b) => {
+                let id = self.add_literal(Value::Bool(*b));
+                self.add_load_literal_inst(id);
+                self.stack_top()
+            }
             ExprEnum::NumLiteral(num) => {
                 let id = self.add_literal(Value::Num(*num));
                 self.add_load_literal_inst(id);

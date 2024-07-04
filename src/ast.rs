@@ -6,15 +6,40 @@ pub type Span<'a> = LocatedSpan<&'a str>;
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum TypeDecl {
   Any,
+  Undefined,
   Null,
+  Bool,
   Num,
   Int,
   Str,
   Coro,
 }
 
+impl std::fmt::Display for TypeDecl {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    use TypeDecl::*;
+    write!(
+      f,
+      "{}",
+      match self {
+        Any => "any",
+        Undefined => "undefined",
+        Null => "null",
+        Bool => "bool",
+        Num => "number",
+        Int => "bigint",
+        Str => "string",
+        Coro => "[BUG] coro",
+      }
+    )
+  }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum ExprEnum<'src> {
+  UndefinedLiteral,
+  NullLiteral,
+  BoolLiteral(bool),
   Ident(Span<'src>),
   NumLiteral(f64),
   StrLiteral(String),

@@ -378,21 +378,3 @@ impl Vm {
         }
     }
 }
-
-pub fn debugger(vm: &Vm) -> bool {
-    println!("[c]ontinue/[p]rint/[e]xit/[bt]race?");
-    loop {
-        let mut buffer = String::new();
-        if std::io::stdin().read_line(&mut buffer).is_ok() {
-            match buffer.trim() {
-                "c" => return false,
-                "p" => {
-                    println!("Stack: {:?}", vm.top().unwrap().stack);
-                }
-                "e" => return true,
-                "bt" => vm.back_trace(),
-                _ => println!("Please say [c]ontinue/[p]rint/[b]reak/[bt]race"),
-            }
-        }
-    }
-}

@@ -40,6 +40,10 @@ pub(crate) fn calc_offset<'a>(i: Span<'a>, r: Span<'a>) -> Span<'a> {
 
 fn factor(i: Span) -> IResult<Span, Expression> {
     alt((
+        undefined_literal,
+        null_literal,
+        true_literal,
+        false_literal,
         dq_str_literal,
         sq_str_literal,
         tmpl_str_literal,
@@ -213,6 +217,26 @@ fn num_literal(input: Span) -> IResult<Span, Expression> {
             v,
         ),
     ))
+}
+
+fn undefined_literal(input: Span) -> IResult<Span, Expression> {
+    let (r, _) = space_delimited(tag("undefined"))(input)?;
+    Ok((r, Expression::new(ExprEnum::NullLiteral, input)))
+}
+
+fn null_literal(input: Span) -> IResult<Span, Expression> {
+    let (r, _) = space_delimited(tag("null"))(input)?;
+    Ok((r, Expression::new(ExprEnum::NullLiteral, input)))
+}
+
+fn true_literal(input: Span) -> IResult<Span, Expression> {
+    let (r, _) = space_delimited(tag("true"))(input)?;
+    Ok((r, Expression::new(ExprEnum::BoolLiteral(true), input)))
+}
+
+fn false_literal(input: Span) -> IResult<Span, Expression> {
+    let (r, _) = space_delimited(tag("false"))(input)?;
+    Ok((r, Expression::new(ExprEnum::BoolLiteral(false), input)))
 }
 
 fn parens(i: Span) -> IResult<Span, Expression> {

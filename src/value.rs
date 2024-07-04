@@ -9,7 +9,9 @@ use crate::vm::Vm;
 
 #[repr(u8)]
 pub enum ValueKind {
+    Undefined, // undefined
     Null, // null
+    Bool, // boolean
     Num, // number
     Int, // bigint (actually i64)
     Str, // string
@@ -18,7 +20,9 @@ pub enum ValueKind {
 
 #[derive(Debug, Clone)]
 pub enum Value {
+    Undefined,
     Null,
+    Bool(bool),
     Num(f64),
     Int(i64),
     Str(String),
@@ -35,7 +39,9 @@ impl PartialEq for Value {
     fn eq(&self, other: &Self) -> bool {
         use Value::*;
         match (self, other) {
+            (Undefined, Undefined) => true,
             (Null, Null) => true,
+            (Bool(lhs), Bool(rhs)) => lhs == rhs,
             (Num(lhs), Num(rhs)) => lhs == rhs,
             (Int(lhs), Int(rhs)) => lhs == rhs,
             (Str(lhs), Str(rhs)) => lhs == rhs,
@@ -47,7 +53,9 @@ impl PartialEq for Value {
 impl Display for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::Undefined => write!(f, "undefined"),
             Self::Null => write!(f, "null"),
+            Self::Bool(value) => write!(f, "{value}"),
             Self::Num(value) => write!(f, "{value}"),
             Self::Int(value) => write!(f, "{value}"),
             Self::Str(value) => write!(f, "{value}"),
@@ -59,7 +67,9 @@ impl Display for Value {
 impl Value {
     fn kind(&self) -> ValueKind {
         match self {
+            Self::Undefined => ValueKind::Undefined,
             Self::Null => ValueKind::Null,
+            Self::Bool(_) => ValueKind::Bool,
             Self::Num(_) => ValueKind::Num,
             Self::Int(_) => ValueKind::Int,
             Self::Str(_) => ValueKind::Str,
@@ -71,8 +81,14 @@ impl Value {
         let kind = self.kind() as u8;
         writer.write_all(&[kind])?;
         match self {
+            Self::Undefined => {
+                // nothing to do
+            }
             Self::Null => {
                 // nothing to do
+            }
+            Self::Bool(value) => {
+                writer.write_all(&[*value as u8])?;
             }
             Self::Num(value) => {
                 writer.write_all(&value.to_le_bytes())?;
