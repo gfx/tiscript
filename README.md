@@ -1,20 +1,25 @@
-# TiTyS - Tiny Subset of TypeScript for Configuration
+# TiTyS - Turing-Incomplete TypeScript as a Configuration Language
 
-TiTyS is a configuration language that is designed to be easy to read and write for humans and easy to parse for machines. It is inspired by TypeScript and JSON. In fact, it is a subset of TypeScript and generates JSON-like data for configuration.
+TiTyS is a configuration language designed to be intuitive and easy to work with for both humans and machines. It draws inspiration from TypeScript and JSON, offering the benefits of both:
 
-This is not a Turing-complete language. It has no loop in any ways, even if the language itself is a TypeScript variant and can use all of the development toolkit of TypeScript such as the language services.
+* **Readability and maintainability** for humans, similar to JSON.
+* **Type safety and structure** for machines, inspired by TypeScript.
+
+TiTyS is intentionally designed to be **Turing incomplete**. This means it's focused on defining configurations and not intended for general programming tasks. However, since it's a subset of TypeScript, you can still leverage the TypeScript development toolkit for features like language services.
+
+## Project Status
+
+This is a work in progress. **The current implementation is a proof of concept** and not yet feature complete. The goal is to provide a simple and easy-to-use configuration language that can be used in a variety of applications.
 
 ## Example
 
 TiTyS definition:
 
-```ts
+```typescript
 // edotor_config.ts
 const LF = "\x0A";
-const CR = "\x0D";
-const CRLF = `${CR}${LF}`;
 
-export EditorConfig = {
+export const EditorConfig = {
     tabSize: 4,
     trimTrailingWhitespace: true,
     endOfLine: LF,
@@ -42,3 +47,14 @@ fn main() {
 
     println!("{:?}", editorConfig);
 }
+```
+
+## Authors
+
+FUJI, Goro (gfx).
+
+This project is based on https://github.com/msakuta/ruscal, where much of code comes from.
+
+## License
+
+This project is licensed under the ISC License - see the [LICENSE](LICENSE) file for details.
