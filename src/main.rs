@@ -1,17 +1,16 @@
 // The CLI reads the source code of Titys program from stdin or the first arg, evaluates it, and prints the result to stdout.
 
 use std::{
-    io::{BufRead, BufReader, Write}, path::Path, process::exit
+    io::{BufRead, BufReader, Write},
+    path::Path,
+    process::exit,
 };
-
-use serde_json::json;
 
 use titys::{
     set_debug,
     type_checker::{type_check, TypeCheckContext},
     util::eval,
     util::parse_program,
-    value::Value,
 };
 
 struct Params {
@@ -112,38 +111,6 @@ fn parse_params() -> Params {
     }
 }
 
-fn eval_to_json(params: &Params) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-    let exports = eval(&params.source, Path::new(&params.source_file))?;
-    let mut json = serde_json::Map::with_capacity(exports.len());
-
-    // TODO: implement serde_json serializer for Value
-    for (name, value) in exports.into_iter() {
-        match value {
-            Value::Null => {
-                json.insert(name, serde_json::Value::Null);
-            }
-            Value::Int(v) => {
-                json.insert(name, json!(v));
-            }
-            Value::Num(v) => {
-                if v.fract() == 0.0 {
-                    json.insert(name, json!(v as i64));
-                } else {
-                    json.insert(name, json!(v));
-                }
-            }
-            Value::Str(v) => {
-                json.insert(name, json!(v));
-            }
-            _ => {
-                panic!("Cannot export the value: {:?}", value);
-            }
-        }
-    }
-
-    Ok(serde_json::Value::Object(json))
-}
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let params: Params = parse_params();
 
@@ -171,7 +138,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         return Ok(());
     }
-    let exports = eval_to_json(&params)?;
+    let exports = eval(&params.source, Path::new(&params.source_file))?;
 
     let mut stdout = std::io::stdout().lock();
     if params.compact {
@@ -189,86 +156,83 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 mod tests {
     use super::*;
     use ctor::ctor;
+    use serde_json::json;
 
     #[ctor]
     fn init() {
         set_debug(true);
     }
 
-    fn simple_eval(source: &str) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-        let params: Params = Params {
-            check: false,
-            show_ast: false,
-            compact: false,
-            source_file: "test.ts".to_string(),
-            source: source.to_string(),
-        };
-        eval_to_json(&params)
+    fn eval_to_json(source: &str) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let exports = eval(source, Path::new("test.ts"))?;
+        let json = serde_json::ser::to_string(&exports)?;
+        let json_object = serde_json::from_str(&json)?;
+        Ok(json_object)
     }
 
     #[test]
     fn test_scalar_num_int() {
-        let result = simple_eval("export let x: number = 42;").unwrap();
+        let result = eval_to_json("export const x: number = 42;").unwrap();
         assert_eq!(result, json!({"x": 42}));
     }
 
     #[test]
     fn test_scalar_num_fract() {
-        let result = simple_eval("export let x: number = 3.14;").unwrap();
+        let result = eval_to_json("export const x: number = 3.14;").unwrap();
         assert_eq!(result, json!({"x": 3.14}));
     }
 
     #[test]
     fn test_scalar_dq_str_simple() {
-        let result = simple_eval("export let x: string = \"hello, world!\";").unwrap();
+        let result = eval_to_json("export const x: string = \"hello, world!\";").unwrap();
         assert_eq!(result, json!({"x": "hello, world!"}));
     }
 
     #[test]
     fn test_scalar_dq_str_empty() {
-        let result = simple_eval("export let x: string = \"hello, world!\";").unwrap();
+        let result = eval_to_json("export const x: string = \"hello, world!\";").unwrap();
         assert_eq!(result, json!({"x": "hello, world!"}));
     }
 
     #[test]
     fn test_scalar_dq_str_with_newline_escapes() {
-        let result = simple_eval("export let x: string = \"hello, world!\\n\";").unwrap();
+        let result = eval_to_json("export const x: string = \"hello, world!\\n\";").unwrap();
         assert_eq!(result, json!({"x": "hello, world!\n"}));
     }
 
     #[test]
     fn test_scalar_dq_str_with_unicode_escapes() {
-        let result = simple_eval("export let x: string = \"hello, \\u{2126}!\";").unwrap();
+        let result = eval_to_json("export const x: string = \"hello, \\u{2126}!\";").unwrap();
         assert_eq!(result, json!({"x": "hello, Ω!"})); // U+2126: Ohm sign
     }
 
     #[test]
     fn test_scalar_sq_str_empty() {
-        let result = simple_eval("export let x: string = '';").unwrap();
+        let result = eval_to_json("export const x: string = '';").unwrap();
         assert_eq!(result, json!({"x": ""}));
     }
 
     #[test]
     fn test_scalar_sq_str_with_escapes() {
-        let result = simple_eval("export let x: string = 'hello, world!\\n';").unwrap();
+        let result = eval_to_json("export const x: string = 'hello, world!\\n';").unwrap();
         assert_eq!(result, json!({"x": "hello, world!\n"}));
     }
 
     #[test]
     fn test_scalar_sq_str_with_unicode_escapes() {
-        let result = simple_eval("export let x: string = 'hello, \\u{2126}!';").unwrap();
+        let result = eval_to_json("export const x: string = 'hello, \\u{2126}!';").unwrap();
         assert_eq!(result, json!({"x": "hello, Ω!"})); // U+2126: Ohm sign
     }
 
     #[test]
     fn test_multiple_exports() {
         // multiple exports
-        let result = simple_eval(
+        let result = eval_to_json(
             r#"
-            export let one: number = 1;
-            export let two: number = 2;
-            export let pi: number = 3.14;
-            export let hello: string = "world";
+            export const one: number = 1;
+            export const two: number = 2;
+            export const pi: number = 3.14;
+            export const hello: string = "world";
         "#,
         )
         .unwrap();
@@ -281,14 +245,25 @@ mod tests {
     #[test]
     fn test_adds() {
         // multiple exports
-        let result = simple_eval(
+        let result = eval_to_json(
             r#"
-            let one: number = 1;
-            let two: number = 2;
-            export let three: number = one + two;
+            const one: number = 1;
+            const two: number = 2;
+            export const three: number = one + two;
         "#,
         )
         .unwrap();
         assert_eq!(result, json!({"three": 3}));
+    }
+
+    #[test]
+    fn test_array_empty() {
+        let result = eval_to_json(
+            r#"
+            export const array = [];
+        "#,
+        )
+        .unwrap();
+        assert_eq!(result, json!({ "array": [] }));
     }
 }

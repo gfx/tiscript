@@ -1,10 +1,7 @@
-use std::{
-    cell::RefCell,
-    fmt::Display,
-    rc::Rc,
-};
+use std::{cell::RefCell, fmt::Display, rc::Rc};
 
 use indexmap::IndexMap;
+use serde::Serialize;
 
 use crate::vm::Vm;
 
@@ -108,6 +105,17 @@ impl Value {
         }
     }
 
+    pub fn to_bool(&self) -> bool {
+        match self {
+            Self::Undefined | Self::Null => false,
+            Self::Num(value) => *value != 0.0 || value.is_nan(),
+            Self::Int(value) => *value != 0,
+            Self::Str(value) => !value.is_empty(),
+            Self::Bool(value) => *value,
+            _ => true,
+        }
+    }
+
     pub fn coerce_num(&self) -> Result<f64, String> {
         Ok(match self {
             Self::Num(value) => *value,
@@ -119,17 +127,6 @@ impl Value {
                 ))
             }
         })
-    }
-
-    pub fn to_bool(&self) -> bool {
-        match self {
-            Self::Undefined | Self::Null => false,
-            Self::Num(value) => *value != 0.0 || value.is_nan(),
-            Self::Int(value) => *value != 0,
-            Self::Str(value) => !value.is_empty(),
-            Self::Bool(value) => *value,
-            _ => true,
-        }
     }
 
     pub fn coerce_int(&self) -> Result<i64, String> {
@@ -163,6 +160,46 @@ impl Value {
         match self {
             Value::Str(s) => Ok(s),
             _ => Err(format!("Expected string, found {:?}", self)),
+        }
+    }
+
+    pub fn must_be_map(&self) -> Result<&IndexMap<String, Value>, String> {
+        match self {
+            Value::Object(map) => Ok(map),
+            _ => Err(format!("Expected object, found {:?}", self)),
+        }
+    }
+}
+
+impl Serialize for Value {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        use serde::ser::*;
+
+        match self {
+            Self::Undefined => serializer.serialize_unit(),
+            Self::Null => serializer.serialize_none(),
+            Self::Bool(value) => serializer.serialize_bool(*value),
+            Self::Num(value) => {
+                if value.fract() == 0.0 {
+                    serializer.serialize_i64(*value as i64)
+                } else {
+                    serializer.serialize_f64(*value)
+                }
+            }
+            Self::Int(value) => serializer.serialize_i64(*value),
+            Self::Str(value) => serializer.serialize_str(value),
+            Self::Array(value) => value.serialize(serializer),
+            Self::Object(value) => {
+                let mut map = serializer.serialize_map(Some(value.len()))?;
+                for (k, v) in value.iter() {
+                    map.serialize_entry(k, v)?;
+                }
+                map.end()
+            }
+            Self::Coro(_) => Err(serde::ser::Error::custom("Cannot serialize coroutine")),
         }
     }
 }

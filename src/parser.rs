@@ -48,6 +48,7 @@ fn factor(i: Span) -> IResult<Span, Expression> {
         sq_str_literal,
         tmpl_str_literal,
         num_literal,
+        array_literal,
         func_call,
         ident,
         parens,
@@ -239,6 +240,16 @@ fn false_literal(input: Span) -> IResult<Span, Expression> {
     Ok((r, Expression::new(ExprEnum::BoolLiteral(false), input)))
 }
 
+fn array_literal(input: Span) -> IResult<Span, Expression> {
+    let (r, list) = space_delimited(delimited(
+        char('['),
+        many0(delimited(multispace0, expr, space_delimited(opt(tag(","))))),
+        char(']'),
+    ))(input)?;
+    let name = Span::new("Array.from");
+    Ok((r, Expression::new(ExprEnum::FnInvoke(name, list), input)))
+}
+
 fn parens(i: Span) -> IResult<Span, Expression> {
     space_delimited(delimited(tag("("), expr, tag(")")))(i)
 }
@@ -264,7 +275,7 @@ fn term(i: Span) -> IResult<Span, Expression> {
     res
 }
 
-fn num_expr(i: Span) -> IResult<Span, Expression> {
+fn add_expr(i: Span) -> IResult<Span, Expression> {
     let (r, init) = term(i)?;
 
     let res = fold_many0(
@@ -283,15 +294,16 @@ fn num_expr(i: Span) -> IResult<Span, Expression> {
 }
 
 fn cond_expr(i0: Span) -> IResult<Span, Expression> {
-    let (i, first) = num_expr(i0)?;
+    let (i, first) = add_expr(i0)?;
     let (i, cond) = space_delimited(alt((char('<'), char('>'))))(i)?;
-    let (i, second) = num_expr(i)?;
+    let (i, second) = add_expr(i)?;
     let span = calc_offset(i0, i);
     Ok((
         i,
         match cond {
             '<' => Expression::new(ExprEnum::Lt(Box::new(first), Box::new(second)), span),
             '>' => Expression::new(ExprEnum::Gt(Box::new(first), Box::new(second)), span),
+            // TODO: ==, !=, ===, !===, <=, >=
             _ => unreachable!(),
         },
     ))
@@ -344,55 +356,49 @@ fn await_expr(i: Span) -> IResult<Span, Expression> {
 }
 
 fn expr(i: Span) -> IResult<Span, Expression> {
-    alt((await_expr, if_expr, cond_expr, num_expr))(i)
+    alt((await_expr, if_expr, cond_expr, add_expr))(i)
+}
+
+fn var_def<'a>(span: Span<'a>, i: Span<'a>, is_const: bool) -> IResult<Span<'a>, Statement<'a>> {
+    let (i, (name, td, ex)) = cut(|i| {
+        let (i, name) = space_delimited(identifier)(i)?;
+
+        // type declaration is optional
+        let mut td: Option<TypeDecl> = None;
+        let (mut i, r) = opt(space_delimited(char(':')))(i)?;
+        if r.is_some() {
+            let actual_td;
+            (i, actual_td) = type_decl(i)?;
+            td = Some(actual_td);
+        }
+
+        let (i, _) = space_delimited(char('='))(i)?;
+        let (i, ex) = space_delimited(expr)(i)?;
+        let (i, _) = space_delimited(char(';'))(i)?;
+        Ok((i, (name, td, ex)))
+    })(i)?;
+    Ok((
+        i,
+        Statement::VarDef {
+            span: calc_offset(span, i),
+            name,
+            td,
+            ex,
+            is_const,
+        },
+    ))
 }
 
 fn let_def(i: Span) -> IResult<Span, Statement> {
     let span = i;
     let (i, _) = delimited(multispace0, tag("let"), multispace1)(i)?;
-    let (i, (name, td, ex)) = cut(|i| {
-        let (i, name) = space_delimited(identifier)(i)?;
-        let (i, _) = space_delimited(char(':'))(i)?;
-        let (i, td) = type_decl(i)?;
-        let (i, _) = space_delimited(char('='))(i)?;
-        let (i, ex) = space_delimited(expr)(i)?;
-        let (i, _) = space_delimited(char(';'))(i)?;
-        Ok((i, (name, td, ex)))
-    })(i)?;
-    Ok((
-        i,
-        Statement::VarDef {
-            span: calc_offset(span, i),
-            name,
-            td,
-            ex,
-            is_const: false,
-        },
-    ))
+    var_def(span, i, false)
 }
 
 fn const_def(i: Span) -> IResult<Span, Statement> {
     let span = i;
     let (i, _) = delimited(multispace0, tag("const"), multispace1)(i)?;
-    let (i, (name, td, ex)) = cut(|i| {
-        let (i, name) = space_delimited(identifier)(i)?;
-        let (i, _) = space_delimited(char(':'))(i)?;
-        let (i, td) = type_decl(i)?;
-        let (i, _) = space_delimited(char('='))(i)?;
-        let (i, ex) = space_delimited(expr)(i)?;
-        let (i, _) = space_delimited(char(';'))(i)?;
-        Ok((i, (name, td, ex)))
-    })(i)?;
-    Ok((
-        i,
-        Statement::VarDef {
-            span: calc_offset(span, i),
-            name,
-            td,
-            ex,
-            is_const: true,
-        },
-    ))
+    var_def(span, i, true)
 }
 
 fn var_assign(i: Span) -> IResult<Span, Statement> {

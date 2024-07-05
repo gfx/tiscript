@@ -1,7 +1,5 @@
 use std::{cell::RefCell, error::Error, rc::Rc};
 
-use indexmap::IndexMap;
-
 use crate::{
     bytecode::{ByteCode, FnByteCode, FnDef},
     // dprintln,
@@ -47,7 +45,7 @@ pub struct Vm {
     bytecode: Rc<ByteCode>,
     stack_frames: Vec<StackFrame>,
     user_data: Box<dyn std::any::Any>,
-    pub exports: IndexMap<String, Value>,
+    pub exports: Value, // must be an object
     debug_output: bool,
 }
 
@@ -58,7 +56,13 @@ impl std::fmt::Debug for Vm {
 }
 
 fn err_bin_op(op: &str, lhs: &Value, rhs: &Value) -> Box<dyn Error> {
-    format!("Operator {} cannot be applied to types '{}' and '{}'", op, lhs.kind(), rhs.kind()).into()
+    format!(
+        "Operator {} cannot be applied to types '{}' and '{}'",
+        op,
+        lhs.kind(),
+        rhs.kind()
+    )
+    .into()
 }
 
 fn bin_op_add(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
@@ -123,7 +127,7 @@ impl Vm {
             bytecode,
             stack_frames: Default::default(),
             user_data,
-            exports: Default::default(),
+            exports: Value::Object(Default::default()),
             debug_output,
         }
     }
@@ -252,22 +256,10 @@ impl Vm {
                     let top = stack.last().unwrap().clone();
                     stack.extend((0..instruction.arg0).map(|_| top.clone()));
                 }
-                OpCode::Add => Self::interpret_bin_op(
-                    &mut self.top_mut()?.stack,
-                    bin_op_add
-                ),
-                OpCode::Sub => Self::interpret_bin_op(
-                    &mut self.top_mut()?.stack,
-                    bin_op_sub
-                ),
-                OpCode::Mul => Self::interpret_bin_op(
-                    &mut self.top_mut()?.stack,
-                    bin_op_mul
-                ),
-                OpCode::Div => Self::interpret_bin_op(
-                    &mut self.top_mut()?.stack,
-                    bin_op_div
-                ),
+                OpCode::Add => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_add),
+                OpCode::Sub => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_sub),
+                OpCode::Mul => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_mul),
+                OpCode::Div => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_div),
                 OpCode::Call => {
                     let stack = &self.top()?.stack;
                     let args = &stack[stack.len() - instruction.arg0 as usize..];
@@ -325,10 +317,7 @@ impl Vm {
                         continue;
                     }
                 }
-                OpCode::Lt => Self::interpret_bin_op(
-                    &mut self.top_mut()?.stack,
-                    bin_op_lt
-                ),
+                OpCode::Lt => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_lt),
                 OpCode::Pop => {
                     let stack = &mut self.top_mut()?.stack;
                     stack.resize(stack.len() - instruction.arg0 as usize, Value::default());
@@ -372,16 +361,21 @@ impl Vm {
                     let stack = &mut self.top_mut()?.stack;
 
                     let value = stack.pop().expect("Export needs a value");
-                    let name = stack.pop().expect("Export needs a name").must_be_str().expect("Export name must be a string").to_string();
+                    let name = stack
+                        .pop()
+                        .expect("Export needs a name")
+                        .must_be_str()
+                        .expect("Export name must be a string")
+                        .to_string();
 
-                    if self.debug_output {
-                        eprintln!("Exporting {name} as {value}");
+                    match self.exports {
+                        Value::Object(ref mut map) => {
+                            map.insert(name, value);
+                        }
+                        _ => {
+                            panic!("vm.exports must be an object");
+                        }
                     }
-
-                    self.exports.insert(
-                        name,
-                        value,
-                    );
                 }
             }
             self.top_mut()?.ip += 1;

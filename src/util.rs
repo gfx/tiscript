@@ -1,7 +1,5 @@
 use std::{error::Error, path::Path, rc::Rc};
 
-use indexmap::IndexMap;
-
 use crate::{
     ast::{Span, Statements},
     compiler::Compiler,
@@ -31,7 +29,7 @@ pub fn parse_program<'a>(
 pub fn eval<'a>(
     source: &'a str,
     source_file: &'a Path,
-) -> Result<IndexMap<String, Value>, Box<dyn std::error::Error>> {
+) -> Result<Value, Box<dyn std::error::Error>> {
     let stmts = parse_program(source, source_file)?;
 
     match type_check(&stmts, &mut TypeCheckContext::new()) {

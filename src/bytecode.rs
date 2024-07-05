@@ -138,6 +138,15 @@ type Functions<'src> = HashMap<String, FnDecl<'src>>;
 pub(crate) fn standard_functions<'src>() -> Functions<'src> {
     let mut funcs = Functions::new();
 
+    funcs.insert(
+        "Array.from".to_string(),
+        FnDecl::Native(NativeFn {
+            args: vec![("args", TypeDecl::Any)],
+            ret_type: TypeDecl::Array, // TODO: Array<T>
+            code: Box::new(|_, args| Value::Array(args.into())),
+        }),
+    );
+
     funcs.insert("sqrt".to_string(), unary_fn(f64::sqrt));
     funcs.insert("sin".to_string(), unary_fn(f64::sin));
     funcs.insert("cos".to_string(), unary_fn(f64::cos));
@@ -145,7 +154,7 @@ pub(crate) fn standard_functions<'src>() -> Functions<'src> {
     funcs.insert("asin".to_string(), unary_fn(f64::asin));
     funcs.insert("acos".to_string(), unary_fn(f64::acos));
     funcs.insert("atan".to_string(), unary_fn(f64::atan));
-    funcs.insert("atan2".to_string(), binary_fn(f64::atgan2));
+    funcs.insert("atan2".to_string(), binary_fn(f64::atan2));
     funcs.insert("pow".to_string(), binary_fn(f64::powf));
     funcs.insert("exp".to_string(), unary_fn(f64::exp));
     funcs.insert("log".to_string(), binary_fn(f64::log));

@@ -2,8 +2,7 @@
 
 use std::{fs, path::Path};
 
-use serde_json::json;
-use titys::{util::eval, value::Value};
+use titys::util::eval;
 
 #[derive(Debug)]
 struct Spec {
@@ -81,51 +80,19 @@ fn test_evaluate_specs_that_should_pass() {
         assert!(result.is_ok());
         assert!(titys2json.is_ok());
 
-        let mut json = serde_json::Map::new();
-        let exports = result.unwrap();
-        for (name, value) in exports.into_iter() {
-            match value {
-                Value::Null => {
-                    json.insert(name, serde_json::Value::Null);
-                }
-                Value::Int(v) => {
-                    json.insert(name, json!(v));
-                }
-                Value::Num(v) => {
-                    if v.fract() == 0.0 {
-                        json.insert(name, json!(v as i64));
-                    } else {
-                        json.insert(name, json!(v));
-                    }
-                }
-                Value::Str(v) => {
-                    json.insert(name, json!(v));
-                }
-                _ => {
-                    panic!("Cannot export the value: {:?}", value);
-                }
-            }
-        }
+        let output = serde_json::ser::to_string_pretty(&result.unwrap()).unwrap() + "\n";
 
         if update {
-            fs::write(
-                format!("{}.stdout", spec.filename),
-                serde_json::to_string_pretty(&json).unwrap().as_bytes(),
-            )
-            .unwrap();
+            fs::write(format!("{}.stdout", spec.filename), output.as_bytes()).unwrap();
         } else {
-            let output = serde_json::to_string_pretty(&json)
-                .unwrap()
-                .trim()
-                .to_string();
             assert_eq!(
-                output,
+                output.trim(),
                 spec.expected_stdout.trim(),
                 "output vs expected in {}",
                 spec.filename
             );
             assert_eq!(
-                output,
+                output.trim(),
                 titys2json.unwrap().trim(),
                 "output vs tsc in {}",
                 spec.filename
@@ -161,8 +128,8 @@ fn test_evaluate_specs_that_should_fail() {
             .unwrap();
         } else {
             assert_eq!(
-                err.to_string(),
-                spec.expected_stderr,
+                err.to_string().trim(),
+                spec.expected_stderr.trim(),
                 "output vs expected in {}",
                 spec.filename
             );

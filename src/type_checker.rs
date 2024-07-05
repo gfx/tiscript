@@ -240,8 +240,10 @@ pub fn type_check<'src>(
     for stmt in stmts {
         match stmt {
             Statement::VarDef { name, td, ex, .. } => {
-                let init_type = tc_expr(ex, ctx)?;
-                let init_type = tc_coerce_type(&init_type, td, ex.span)?;
+                let mut init_type = tc_expr(ex, ctx)?;
+                if let Some(td) = td {
+                    init_type = tc_coerce_type(&init_type, td, ex.span)?;
+                }
                 ctx.vars.insert(**name, init_type);
             }
             Statement::VarAssign { name, ex, .. } => {
