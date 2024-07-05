@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import * as fs from "node:fs";
 import * as path from "node:path";
+import * as os from "node:os";
 import * as ts from "typescript";
 
 function die(msg) {
@@ -9,9 +10,11 @@ function die(msg) {
 }
 
 const tsFile = process.argv[2] ?? die("No file provided.");
-const TMPDIR = process.env.TMPDIR ?? die("No TMPDIR provided.");
+const TMPDIR = os.tmpdir() ?? die("No TMPDIR provided.");
 const jsFile = `${TMPDIR}/${path.basename(tsFile).replace(/\.m?tsx?$/, ".js")}`;
-const mjsFile = `${TMPDIR}/${path.basename(tsFile).replace(/\.m?tsx?$/, ".mjs")}`;
+const mjsFile = `${TMPDIR}/${path
+  .basename(tsFile)
+  .replace(/\.m?tsx?$/, ".mjs")}`;
 process.on("exit", () => {
   for (const file of [jsFile, mjsFile]) {
     if (fs.existsSync(file)) {
@@ -52,7 +55,9 @@ for (const diagnostic of allDiagnostics) {
       `${diagnostic.file.fileName}:${line + 1}:${character + 1}: ${message}`
     );
   } else {
-    console.error(ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"));
+    console.error(
+      ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n")
+    );
   }
 }
 
