@@ -1,3 +1,5 @@
+// UPDATE=1 to update expected files
+
 use std::{fs, path::Path};
 
 use serde_json::json;
@@ -63,104 +65,122 @@ fn collect_specs(spec_dir: &Path) -> Vec<Spec> {
 }
 
 #[test]
-fn test_evaluate_specs() {
+fn test_evaluate_specs_that_should_pass() {
+    let update = std::env::var("UPDATE").is_ok();
+
+    let specs = collect_specs(Path::new("spec"));
+
+    for spec in specs {
+        if spec.is_err {
+            continue;
+        }
+        let source = fs::read_to_string(&spec.filename).unwrap();
+        let result = eval(&source, Path::new(&spec.filename));
+        let titys2json = run_titys2json(&spec.filename);
+
+        assert!(result.is_ok());
+        assert!(titys2json.is_ok());
+
+        let mut json = serde_json::Map::new();
+        let exports = result.unwrap();
+        for (name, value) in exports.into_iter() {
+            match value {
+                Value::Null => {
+                    json.insert(name, serde_json::Value::Null);
+                }
+                Value::Int(v) => {
+                    json.insert(name, json!(v));
+                }
+                Value::Num(v) => {
+                    if v.fract() == 0.0 {
+                        json.insert(name, json!(v as i64));
+                    } else {
+                        json.insert(name, json!(v));
+                    }
+                }
+                Value::Str(v) => {
+                    json.insert(name, json!(v));
+                }
+                _ => {
+                    panic!("Cannot export the value: {:?}", value);
+                }
+            }
+        }
+
+        if update {
+            fs::write(
+                format!("{}.stdout", spec.filename),
+                serde_json::to_string_pretty(&json).unwrap().as_bytes(),
+            )
+            .unwrap();
+        } else {
+            let output = serde_json::to_string_pretty(&json)
+                .unwrap()
+                .trim()
+                .to_string();
+            assert_eq!(
+                output,
+                spec.expected_stdout.trim(),
+                "output vs expected in {}",
+                spec.filename
+            );
+            assert_eq!(
+                output,
+                titys2json.unwrap().trim(),
+                "output vs tsc in {}",
+                spec.filename
+            );
+        }
+    }
+}
+
+#[test]
+fn test_evaluate_specs_that_should_fail() {
     // UPDATE=1 to update expected files
     let update = std::env::var("UPDATE").is_ok();
 
     let specs = collect_specs(Path::new("spec"));
 
     for spec in specs {
+        if !spec.is_err {
+            continue;
+        }
         let source = fs::read_to_string(&spec.filename).unwrap();
         let result = eval(&source, Path::new(&spec.filename));
-        let mut json = serde_json::Map::new();
-
         let titys2json = run_titys2json(&spec.filename);
 
-        if spec.is_err {
-            assert!(result.is_err());
-            assert!(titys2json.is_err());
-            let err = result.unwrap_err();
+        assert!(result.is_err());
+        assert!(titys2json.is_err());
+        let err = result.unwrap_err();
 
-            if update {
-                fs::write(
-                    format!("{}.stderr", spec.filename),
-                    err.to_string().as_bytes(),
-                )
-                .unwrap();
-            } else {
-                assert_eq!(
-                    err.to_string(),
-                    spec.expected_stderr,
-                    "output vs expected in {}",
-                    spec.filename
-                );
-
-                // extract the message body (just after the first whitespace)
-                let tsc_full_message = titys2json.unwrap_err().to_string();
-                let (_, tsc_message) =
-                    tsc_full_message.split_at(tsc_full_message.find(" ").unwrap() + 1);
-
-                let titys_full_message = err.to_string();
-                let (_, err) =
-                    titys_full_message.split_at(titys_full_message.find(" ").unwrap() + 1);
-
-                assert_eq!(
-                    err.trim(),
-                    tsc_message.trim(),
-                    "output vs tsc in {}",
-                    spec.filename
-                );
-            }
+        if update {
+            fs::write(
+                format!("{}.stderr", spec.filename),
+                err.to_string().as_bytes(),
+            )
+            .unwrap();
         } else {
-            assert!(result.is_ok());
-            assert!(titys2json.is_ok());
+            assert_eq!(
+                err.to_string(),
+                spec.expected_stderr,
+                "output vs expected in {}",
+                spec.filename
+            );
 
-            let exports = result.unwrap();
-            for (name, value) in exports.into_iter() {
-                match value {
-                    Value::Null => {
-                        json.insert(name, serde_json::Value::Null);
-                    }
-                    Value::Int(v) => {
-                        json.insert(name, json!(v));
-                    }
-                    Value::Num(v) => {
-                        if v.fract() == 0.0 {
-                            json.insert(name, json!(v as i64));
-                        } else {
-                            json.insert(name, json!(v));
-                        }
-                    }
-                    Value::Str(v) => {
-                        json.insert(name, json!(v));
-                    }
-                    _ => {
-                        panic!("Cannot export the value: {:?}", value);
-                    }
-                }
-            }
+            // extract the message body (just after the first whitespace)
+            let tsc_full_message = titys2json.unwrap_err().to_string();
+            let (_, tsc_message) =
+                tsc_full_message.split_at(tsc_full_message.find(" ").unwrap() + 1);
 
-            if update {
-                fs::write(
-                    format!("{}.stdout", spec.filename),
-                    serde_json::to_string_pretty(&json).unwrap().as_bytes(),
-                )
-                .unwrap();
-            } else {
-                let output = serde_json::to_string_pretty(&json).unwrap().trim().to_string();
-                assert_eq!(
-                    output,
-                    spec.expected_stdout.trim(),
-                    "output vs expected in {}",
-                    spec.filename
-                );
-                assert_eq!(
-                    output,
-                    titys2json.unwrap().trim(),
-                    "output vs tsc in {}",
-                    spec.filename
-                );
-            }
+            let titys_full_message = err.to_string();
+            let (_, err) = titys_full_message.split_at(titys_full_message.find(" ").unwrap() + 1);
+
+            assert_eq!(
+                err.trim(),
+                tsc_message.trim(),
+                "output vs tsc in {}",
+                spec.filename
+            );
         }
     }
 }
