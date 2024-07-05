@@ -4,7 +4,7 @@ use crate::{
     ast::{ExprEnum, Expression, Span, Statement, Statements, TypeDecl},
     bytecode::{standard_functions, ByteCode, FnByteCode, FnDecl, FnDef},
     instructions::{Instruction, OpCode},
-    value::{serialize_size, serialize_str, Value},
+    value::Value,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
@@ -147,15 +147,6 @@ impl Compiler {
                 cofn,
             ),
         );
-    }
-
-    pub fn write_funcs(&self, writer: &mut impl Write) -> std::io::Result<()> {
-        serialize_size(self.funcs.len(), writer)?;
-        for (name, func) in &self.funcs {
-            serialize_str(name, writer)?;
-            func.serialize(writer)?;
-        }
-        Ok(())
     }
 
     fn compile_expr(&mut self, ex: &Expression) -> Result<StkIdx, Box<dyn Error>> {

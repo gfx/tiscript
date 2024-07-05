@@ -1,10 +1,9 @@
-use std::{error::Error, io::Read, path::Path, rc::Rc};
+use std::{error::Error, path::Path, rc::Rc};
 
 use indexmap::IndexMap;
 
 use crate::{
     ast::{Span, Statements},
-    bytecode::ByteCode,
     compiler::Compiler,
     is_debug,
     parser::statements_finish,
@@ -29,18 +28,11 @@ pub fn parse_program<'a>(
     })
 }
 
-pub fn read_program(reader: &mut impl Read) -> std::io::Result<Rc<ByteCode>> {
-    let mut bytecode = ByteCode::new();
-    bytecode.read_funcs(reader)?;
-    Ok(Rc::new(bytecode))
-}
-
 pub fn eval<'a>(
     source: &'a str,
     source_file: &'a Path,
 ) -> Result<IndexMap<String, Value>, Box<dyn std::error::Error>> {
     let stmts = parse_program(source, source_file)?;
-    let mut buf = vec![];
 
     match type_check(&stmts, &mut TypeCheckContext::new()) {
         Ok(_) => {
@@ -60,9 +52,7 @@ pub fn eval<'a>(
 
     let mut compiler = Compiler::new();
     compiler.compile(&stmts)?;
-
-    compiler.write_funcs(&mut std::io::Cursor::new(&mut buf))?;
-    let bytecode = read_program(&mut std::io::Cursor::new(&mut buf))?;
+    let bytecode = Rc::new(compiler.into_bytecode());
 
     let mut vm = Vm::new(bytecode, Box::new(()), is_debug());
     if let Err(e) = vm.init_fn("main", &[]) {
