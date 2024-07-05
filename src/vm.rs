@@ -57,6 +57,62 @@ impl std::fmt::Debug for Vm {
     }
 }
 
+fn err_bin_op(op: &str, lhs: &Value, rhs: &Value) -> Box<dyn Error> {
+    format!("Operator {} cannot be applied to types '{}' and '{}'", op, lhs.kind(), rhs.kind()).into()
+}
+
+fn bin_op_add(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
+    match (lhs, rhs) {
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Num(lhs + rhs)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Int(lhs + rhs)),
+        (Value::Num(lhs), Value::Int(rhs)) => Ok(Value::Num(lhs + *rhs as f64)),
+        (Value::Int(lhs), Value::Num(rhs)) => Ok(Value::Num(*lhs as f64 + rhs)),
+        (Value::Str(lhs), Value::Str(rhs)) => Ok(Value::Str(lhs.clone() + rhs)),
+        _ => Err(err_bin_op("+", lhs, rhs)),
+    }
+}
+
+fn bin_op_sub(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
+    match (lhs, rhs) {
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Num(lhs - rhs)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Int(lhs - rhs)),
+        (Value::Num(lhs), Value::Int(rhs)) => Ok(Value::Num(lhs - *rhs as f64)),
+        (Value::Int(lhs), Value::Num(rhs)) => Ok(Value::Num(*lhs as f64 - rhs)),
+        _ => Err(err_bin_op("-", lhs, rhs)),
+    }
+}
+
+fn bin_op_mul(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
+    match (lhs, rhs) {
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Num(lhs * rhs)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Int(lhs * rhs)),
+        (Value::Num(lhs), Value::Int(rhs)) => Ok(Value::Num(lhs * *rhs as f64)),
+        (Value::Int(lhs), Value::Num(rhs)) => Ok(Value::Num(*lhs as f64 * rhs)),
+        _ => Err(err_bin_op("*", lhs, rhs)),
+    }
+}
+
+fn bin_op_div(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
+    match (lhs, rhs) {
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Num(lhs / rhs)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Num(*lhs as f64 / *rhs as f64)),
+        (Value::Num(lhs), Value::Int(rhs)) => Ok(Value::Num(lhs / *rhs as f64)),
+        (Value::Int(lhs), Value::Num(rhs)) => Ok(Value::Num(*lhs as f64 / rhs)),
+        _ => Err(err_bin_op("/", lhs, rhs)),
+    }
+}
+
+fn bin_op_lt(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
+    match (lhs, rhs) {
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Bool(*lhs < *rhs)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Bool(*lhs < *rhs)),
+        (Value::Num(lhs), Value::Int(rhs)) => Ok(Value::Bool(*lhs < *rhs as f64)),
+        (Value::Int(lhs), Value::Num(rhs)) => Ok(Value::Bool((*lhs as f64) < *rhs)),
+        (Value::Str(lhs), Value::Str(rhs)) => Ok(Value::Bool(*lhs < *rhs)),
+        _ => Err(err_bin_op("<", lhs, rhs)),
+    }
+}
+
 impl Vm {
     pub fn new(
         bytecode: Rc<ByteCode>,
@@ -196,26 +252,21 @@ impl Vm {
                     let top = stack.last().unwrap().clone();
                     stack.extend((0..instruction.arg0).map(|_| top.clone()));
                 }
-                OpCode::Add => Self::interpret_bin_op_str(
+                OpCode::Add => Self::interpret_bin_op(
                     &mut self.top_mut()?.stack,
-                    |lhs, rhs| lhs + rhs,
-                    |lhs, rhs| lhs + rhs,
-                    |lhs, rhs| Some(format!("{lhs}{rhs}")),
+                    bin_op_add
                 ),
                 OpCode::Sub => Self::interpret_bin_op(
                     &mut self.top_mut()?.stack,
-                    |lhs, rhs| lhs - rhs,
-                    |lhs, rhs| lhs - rhs,
+                    bin_op_sub
                 ),
                 OpCode::Mul => Self::interpret_bin_op(
                     &mut self.top_mut()?.stack,
-                    |lhs, rhs| lhs * rhs,
-                    |lhs, rhs| lhs * rhs,
+                    bin_op_mul
                 ),
                 OpCode::Div => Self::interpret_bin_op(
                     &mut self.top_mut()?.stack,
-                    |lhs, rhs| lhs / rhs,
-                    |lhs, rhs| lhs / rhs,
+                    bin_op_div
                 ),
                 OpCode::Call => {
                     let stack = &self.top()?.stack;
@@ -269,15 +320,14 @@ impl Vm {
                 OpCode::Jf => {
                     let stack = &mut self.top_mut()?.stack;
                     let cond = stack.pop().expect("Jf needs an argument");
-                    if cond.coerce_num() == Ok(0.) {
+                    if cond.to_bool() {
                         self.top_mut()?.ip = instruction.arg0 as usize;
                         continue;
                     }
                 }
                 OpCode::Lt => Self::interpret_bin_op(
                     &mut self.top_mut()?.stack,
-                    |lhs, rhs| (lhs < rhs) as i32 as f64,
-                    |lhs, rhs| (lhs < rhs) as i64,
+                    bin_op_lt
                 ),
                 OpCode::Pop => {
                     let stack = &mut self.top_mut()?.stack;
@@ -338,38 +388,14 @@ impl Vm {
         }
     }
 
-    fn interpret_bin_op_str(
-        stack: &mut Vec<Value>,
-        op_f64: impl FnOnce(f64, f64) -> f64,
-        op_i64: impl FnOnce(i64, i64) -> i64,
-        op_str: impl FnOnce(&str, &str) -> Option<String>,
-    ) {
-        use Value::*;
-        let rhs = stack.pop().expect("Stack underflow");
-        let lhs = stack.pop().expect("Stack underflow");
-        let res = match (lhs, rhs) {
-            (Num(lhs), Num(rhs)) => Num(op_f64(lhs, rhs)),
-            (Int(lhs), Int(rhs)) => Int(op_i64(lhs, rhs)),
-            (Num(lhs), Int(rhs)) => Num(op_f64(lhs, rhs as f64)),
-            (Int(lhs), Num(rhs)) => Num(op_f64(lhs as f64, rhs)),
-            (Str(lhs), Str(rhs)) => {
-                if let Some(res) = op_str(&lhs, &rhs) {
-                    Str(res)
-                } else {
-                    panic!("Incompatible types in binary op: {lhs:?} and {rhs:?}");
-                }
-            }
-            (lhs, rhs) => panic!("Incompatible types in binary op: {lhs:?} and {rhs:?}"),
-        };
-        stack.push(res);
-    }
-
     fn interpret_bin_op(
         stack: &mut Vec<Value>,
-        op_f64: impl FnOnce(f64, f64) -> f64,
-        op_i64: impl FnOnce(i64, i64) -> i64,
+        op: impl FnOnce(&Value, &Value) -> Result<Value, Box<dyn Error>>,
     ) {
-        Self::interpret_bin_op_str(stack, op_f64, op_i64, |_, _| None)
+        let rhs = stack.pop().expect("Stack underflow");
+        let lhs = stack.pop().expect("Stack underflow");
+        let res = op(&lhs, &rhs).unwrap();
+        stack.push(res);
     }
 
     fn back_trace(&self) {

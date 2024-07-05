@@ -25,7 +25,7 @@ impl std::fmt::Display for TypeDecl {
         Any => "any",
         Undefined => "undefined",
         Null => "null",
-        Bool => "bool",
+        Bool => "boolean",
         Num => "number",
         Int => "bigint",
         Str => "string",

@@ -118,8 +118,8 @@ fn tc_binary_op<'src>(
     binary_op_type(&lhst, &rhst).map_err(|_| {
         TypeCheckError::new(
             format!(
-                "Operation {op} between incompatible type: {:?} and {:?}",
-                lhst, rhst,
+                "Operator '{}' cannot be applied to types '{}' and '{}'.",
+                op, lhst, rhst,
             ),
             lhs.span,
         )
@@ -197,12 +197,12 @@ fn tc_expr<'src>(
             }
             func.ret_type()
         }
-        Add(lhs, rhs) => tc_binary_op(&lhs, &rhs, ctx, "Add")?,
-        Sub(lhs, rhs) => tc_binary_op(&lhs, &rhs, ctx, "Sub")?,
-        Mul(lhs, rhs) => tc_binary_op(&lhs, &rhs, ctx, "Mult")?,
-        Div(lhs, rhs) => tc_binary_op(&lhs, &rhs, ctx, "Div")?,
-        Lt(lhs, rhs) => tc_binary_cmp(&lhs, &rhs, ctx, "LT")?,
-        Gt(lhs, rhs) => tc_binary_cmp(&lhs, &rhs, ctx, "GT")?,
+        Add(lhs, rhs) => tc_binary_op(&lhs, &rhs, ctx, "+")?,
+        Sub(lhs, rhs) => tc_binary_op(&lhs, &rhs, ctx, "-")?,
+        Mul(lhs, rhs) => tc_binary_op(&lhs, &rhs, ctx, "*")?,
+        Div(lhs, rhs) => tc_binary_op(&lhs, &rhs, ctx, "/")?,
+        Lt(lhs, rhs) => tc_binary_cmp(&lhs, &rhs, ctx, "<")?,
+        Gt(lhs, rhs) => tc_binary_cmp(&lhs, &rhs, ctx, ">")?,
         If(cond, true_branch, false_branch) => {
             tc_coerce_type(&tc_expr(cond, ctx)?, &TypeDecl::Int, cond.span)?;
             let true_type = type_check(true_branch, ctx)?;

@@ -8,14 +8,15 @@ use std::{
 use crate::vm::Vm;
 
 #[repr(u8)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ValueKind {
     Undefined, // undefined
-    Null, // null
-    Bool, // boolean
-    Num, // number
-    Int, // bigint (actually i64)
-    Str, // string
-    Coro, // TODO: generator function
+    Null,      // null
+    Bool,      // boolean
+    Num,       // number
+    Int,       // bigint (actually i64)
+    Str,       // string
+    Coro,      // TODO: generator function
 }
 
 #[derive(Debug, Clone)]
@@ -64,8 +65,27 @@ impl Display for Value {
     }
 }
 
+impl Display for ValueKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use ValueKind::*;
+        write!(
+            f,
+            "{}",
+            match self {
+                Undefined => "undefined",
+                Null => "null",
+                Bool => "bool",
+                Num => "number",
+                Int => "bigint",
+                Str => "string",
+                Coro => "coroutine",
+            }
+        )
+    }
+}
+
 impl Value {
-    fn kind(&self) -> ValueKind {
+    pub fn kind(&self) -> ValueKind {
         match self {
             Self::Undefined => ValueKind::Undefined,
             Self::Null => ValueKind::Null,
@@ -152,6 +172,17 @@ impl Value {
                 ))
             }
         })
+    }
+
+    pub fn to_bool(&self) -> bool {
+        match self {
+            Self::Undefined | Self::Null => false,
+            Self::Num(value) => *value != 0.0 || value.is_nan(),
+            Self::Int(value) => *value != 0,
+            Self::Str(value) => !value.is_empty(),
+            Self::Bool(value) => *value,
+            _ => true,
+        }
     }
 
     pub fn coerce_int(&self) -> Result<i64, String> {

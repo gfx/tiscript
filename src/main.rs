@@ -148,7 +148,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if params.show_ast {
         let stmts = parse_program(&params.source_file, &params.source)?;
-        println!("{:#?}", stmts);
+        println!("AST: {:#?}", stmts);
         return Ok(());
     } else if params.check {
         let stmts = parse_program(&params.source_file, &params.source)?;

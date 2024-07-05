@@ -373,7 +373,7 @@ fn let_def(i: Span) -> IResult<Span, Statement> {
 
 fn const_def(i: Span) -> IResult<Span, Statement> {
     let span = i;
-    let (i, _) = delimited(multispace0, tag("let"), multispace1)(i)?;
+    let (i, _) = delimited(multispace0, tag("const"), multispace1)(i)?;
     let (i, (name, td, ex)) = cut(|i| {
         let (i, name) = space_delimited(identifier)(i)?;
         let (i, _) = space_delimited(char(':'))(i)?;
