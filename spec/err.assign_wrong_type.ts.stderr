@@ -1,1 +1,1 @@
-spec/err.assign_wrong_type.ts:1:19: Type 'string' is not assignable to type 'number'
+spec/err.assign_wrong_type.ts:1:19: Type 'string' is not assignable to type 'number'.

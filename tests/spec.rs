@@ -11,6 +11,20 @@ struct Spec {
     expected_stderr: String,
 }
 
+fn run_titys2json(filename: &String) -> Result<String, Box<dyn std::error::Error>> {
+    // run `node titys2json $filename`
+    let output = std::process::Command::new("node")
+        .arg("titys2json")
+        .arg(filename)
+        .output()?;
+
+    if output.status.success() {
+        Ok(String::from_utf8(output.stdout)?)
+    } else {
+        Err(String::from_utf8(output.stderr)?.into())
+    }
+}
+
 fn collect_specs(spec_dir: &Path) -> Vec<Spec> {
     let mut specs = vec![];
 
@@ -60,8 +74,11 @@ fn test_evaluate_specs() {
         let result = eval(&source, Path::new(&spec.filename));
         let mut json = serde_json::Map::new();
 
+        let titys2json = run_titys2json(&spec.filename);
+
         if spec.is_err {
             assert!(result.is_err());
+            assert!(titys2json.is_err());
             let err = result.unwrap_err();
 
             if update {
@@ -71,9 +88,33 @@ fn test_evaluate_specs() {
                 )
                 .unwrap();
             } else {
-                assert_eq!(err.to_string(), spec.expected_stderr);
+                assert_eq!(
+                    err.to_string(),
+                    spec.expected_stderr,
+                    "output vs expected in {}",
+                    spec.filename
+                );
+
+                // extract the message body (just after the first whitespace)
+                let tsc_full_message = titys2json.unwrap_err().to_string();
+                let (_, tsc_message) =
+                    tsc_full_message.split_at(tsc_full_message.find(" ").unwrap() + 1);
+
+                let titys_full_message = err.to_string();
+                let (_, err) =
+                    titys_full_message.split_at(titys_full_message.find(" ").unwrap() + 1);
+
+                assert_eq!(
+                    err.trim(),
+                    tsc_message.trim(),
+                    "output vs tsc in {}",
+                    spec.filename
+                );
             }
         } else {
+            assert!(result.is_ok());
+            assert!(titys2json.is_ok());
+
             let exports = result.unwrap();
             for (name, value) in exports.into_iter() {
                 match value {
@@ -106,9 +147,18 @@ fn test_evaluate_specs() {
                 )
                 .unwrap();
             } else {
+                let output = serde_json::to_string_pretty(&json).unwrap().trim().to_string();
                 assert_eq!(
-                    serde_json::to_string_pretty(&json).unwrap(),
-                    spec.expected_stdout
+                    output,
+                    spec.expected_stdout.trim(),
+                    "output vs expected in {}",
+                    spec.filename
+                );
+                assert_eq!(
+                    output,
+                    titys2json.unwrap().trim(),
+                    "output vs tsc in {}",
+                    spec.filename
                 );
             }
         }

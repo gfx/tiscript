@@ -100,7 +100,7 @@ fn tc_coerce_type<'src>(
         (Coro, Coro) => Coro,
         _ => {
             return Err(TypeCheckError::new(
-                format!("Type '{value}' is not assignable to type '{target}'"),
+                format!("Type '{value}' is not assignable to type '{target}'."),
                 span,
             ))
         }
