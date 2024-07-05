@@ -1,8 +1,7 @@
 // The CLI reads the source code of Titys program from stdin or the first arg, evaluates it, and prints the result to stdout.
 
 use std::{
-    io::{BufRead, BufReader, Write},
-    process::exit,
+    io::{BufRead, BufReader, Write}, path::Path, process::exit
 };
 
 use serde_json::json;
@@ -114,8 +113,10 @@ fn parse_params() -> Params {
 }
 
 fn eval_to_json(params: &Params) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-    let exports = eval(&params.source_file, &params.source)?;
+    let exports = eval(&params.source, Path::new(&params.source_file))?;
     let mut json = serde_json::Map::with_capacity(exports.len());
+
+    // TODO: implement serde_json serializer for Value
     for (name, value) in exports.into_iter() {
         match value {
             Value::Null => {
@@ -147,11 +148,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let params: Params = parse_params();
 
     if params.show_ast {
-        let stmts = parse_program(&params.source_file, &params.source)?;
+        let stmts = parse_program(&params.source, Path::new(&params.source_file))?;
         println!("AST: {:#?}", stmts);
         return Ok(());
     } else if params.check {
-        let stmts = parse_program(&params.source_file, &params.source)?;
+        let stmts = parse_program(&params.source, Path::new(&params.source_file))?;
         let mut ctx = TypeCheckContext::new();
         match type_check(&stmts, &mut ctx) {
             Ok(_) => {

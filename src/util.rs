@@ -1,4 +1,4 @@
-use std::{error::Error, io::Read, rc::Rc};
+use std::{error::Error, io::Read, path::Path, rc::Rc};
 
 use indexmap::IndexMap;
 
@@ -13,22 +13,14 @@ use crate::{
     vm::{Vm, YieldResult},
 };
 
-pub struct Params {
-    pub check: bool,
-    pub show_ast: bool,
-    pub compact: bool,
-    pub source_file: String,
-    pub source: String,
-}
-
-pub fn parse_program<'src>(
-    source_file: &str,
-    source: &'src str,
-) -> Result<Statements<'src>, Box<dyn Error>> {
+pub fn parse_program<'a>(
+    source: &'a str,
+    source_file: &'a Path,
+) -> Result<Statements<'a>, Box<dyn Error>> {
     statements_finish(Span::new(source)).map_err(|e| {
         format!(
             "{}:{}:{}: {}",
-            source_file,
+            source_file.display(),
             e.input.location_line(),
             e.input.get_utf8_column(),
             e
@@ -44,10 +36,10 @@ pub fn read_program(reader: &mut impl Read) -> std::io::Result<Rc<ByteCode>> {
 }
 
 pub fn eval<'a>(
-    source_file: &'a str,
     source: &'a str,
+    source_file: &'a Path,
 ) -> Result<IndexMap<String, Value>, Box<dyn std::error::Error>> {
-    let stmts = parse_program(source_file, source)?;
+    let stmts = parse_program(source, source_file)?;
     let mut buf = vec![];
 
     match type_check(&stmts, &mut TypeCheckContext::new()) {
@@ -57,7 +49,7 @@ pub fn eval<'a>(
         Err(e) => {
             return Err(format!(
                 "{}:{}:{}: {}",
-                source_file,
+                source_file.display(),
                 e.span.location_line(),
                 e.span.get_utf8_column(),
                 e.msg
