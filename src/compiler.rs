@@ -334,6 +334,15 @@ impl Compiler {
                     self.add_inst(OpCode::Yield, (self.target_stack.len() - res.0 - 1) as u8);
                     self.target_stack.pop();
                 }
+                Statement::ExportDefault(ex) => {
+                    // `export default expr` is a syntactic sugar for `export const default = expr`.
+                    let res = self.compile_expr(ex)?;
+
+                    let name_id = self.add_literal(Value::Str("default".to_string()));
+                    self.add_load_literal_inst(name_id);
+                    self.add_copy_inst(res);
+                    self.add_inst(OpCode::Export, 0);
+                }
                 Statement::Export(stmts) => {
                     assert!(stmts.len() == 1);
 

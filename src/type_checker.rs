@@ -280,6 +280,9 @@ pub fn type_check<'src>(
                 tc_expr(e, ctx)?;
                 // TODO: check type with the return type, but don't escape from this function.
             }
+            Statement::ExportDefault(e) => {
+                res = tc_expr(e, ctx)?;
+            }
             Statement::Export(stmts) => {
                 res = type_check(stmts, ctx)?;
             }

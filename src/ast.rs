@@ -98,6 +98,7 @@ pub enum Statement<'src> {
     },
     Return(Expression<'src>),
     Yield(Expression<'src>),
+    ExportDefault(Expression<'src>),
     Export(Statements<'src>), // stmts.len() == 1
 }
 
@@ -111,6 +112,7 @@ impl<'src> Statement<'src> {
             FnDef { name, stmts, .. } => calc_offset(*name, stmts.span()),
             Return(ex) => ex.span,
             Yield(ex) => ex.span,
+            ExportDefault(ex) => ex.span,
             Export(stmts) => stmts[0].span().unwrap(),
         })
     }

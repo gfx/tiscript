@@ -568,6 +568,13 @@ fn fn_def_statement(i: Span) -> IResult<Span, Statement> {
     ))
 }
 
+fn export_default_statement(i: Span) -> IResult<Span, Statement> {
+    let (i, _) = space_delimited(tag("export"))(i)?;
+    let (i, _) = space_delimited(tag("default"))(i)?;
+    let (i, ex) = space_delimited(expr)(i)?;
+    Ok((i, Statement::ExportDefault(ex)))
+}
+
 fn export_statement(i: Span) -> IResult<Span, Statement> {
     let (i, _) = space_delimited(tag("export"))(i)?;
     let (i, stmt) = statement(i)?;
@@ -613,6 +620,7 @@ fn general_statement<'a>(last: bool) -> impl Fn(Span<'a>) -> IResult<Span<'a>, S
             fn_def_statement,
             return_statement,
             yield_statement,
+            export_default_statement,
             export_statement,
             terminated(expr_statement, terminator),
         ))(input)
