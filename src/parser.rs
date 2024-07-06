@@ -121,8 +121,9 @@ fn ident(input: Span) -> IResult<Span, Expression> {
 
 fn identifier(input: Span) -> IResult<Span, Span> {
     recognize(pair(
-        alt((alpha1, tag("_"))),
-        many0(alt((alphanumeric1, tag("_")))),
+        // . is not a ECMA-262 spec but for a tentative solution to call class methods.
+        alt((alpha1, tag("_"), tag("$"), tag("."))),
+        many0(alt((alphanumeric1, tag("_"), tag("$"), tag(".")))),
     ))(input)
 }
 

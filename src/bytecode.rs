@@ -157,44 +157,88 @@ pub(crate) fn standard_functions<'src>() -> Functions<'src> {
         }),
     );
 
-    funcs.insert("sqrt".to_string(), unary_fn(f64::sqrt));
-    funcs.insert("sin".to_string(), unary_fn(f64::sin));
-    funcs.insert("cos".to_string(), unary_fn(f64::cos));
-    funcs.insert("tan".to_string(), unary_fn(f64::tan));
-    funcs.insert("asin".to_string(), unary_fn(f64::asin));
-    funcs.insert("acos".to_string(), unary_fn(f64::acos));
-    funcs.insert("atan".to_string(), unary_fn(f64::atan));
-    funcs.insert("atan2".to_string(), binary_fn(f64::atan2));
-    funcs.insert("pow".to_string(), binary_fn(f64::powf));
-    funcs.insert("exp".to_string(), unary_fn(f64::exp));
-    funcs.insert("log".to_string(), binary_fn(f64::log));
-    funcs.insert("log10".to_string(), unary_fn(f64::log10));
+    // cf. https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math
+    funcs.insert("Math.abs".to_string(), unary_fn(f64::abs));
+    funcs.insert("Math.acos".to_string(), unary_fn(f64::acos));
+    funcs.insert("Math.acosh".to_string(), unary_fn(f64::acosh));
+    funcs.insert("Math.asin".to_string(), unary_fn(f64::asin));
+    funcs.insert("Math.asinh".to_string(), unary_fn(f64::asinh));
+    funcs.insert("Math.atan".to_string(), unary_fn(f64::atan));
+    funcs.insert("Math.atan2".to_string(), binary_fn(f64::atan2));
+    funcs.insert("Math.atanh".to_string(), unary_fn(f64::atanh));
+    funcs.insert("Math.cbrt".to_string(), unary_fn(f64::cbrt));
+    funcs.insert("Math.ceil".to_string(), unary_fn(f64::ceil));
+    funcs.insert("Math.clz32".to_string(), unary_fn(|x| x.to_bits().leading_zeros() as f64));
+    funcs.insert("Math.cos".to_string(), unary_fn(f64::cos));
+    funcs.insert("Math.cosh".to_string(), unary_fn(f64::cosh));
+    funcs.insert("Math.exp".to_string(), unary_fn(f64::exp));
+    funcs.insert("Math.expm1".to_string(), unary_fn(f64::exp_m1));
+    funcs.insert("Math.floor".to_string(), unary_fn(f64::floor));
+    funcs.insert("Math.fround".to_string(), unary_fn(f64::round));
+    funcs.insert("Math.hypot".to_string(), FnDecl::Native(NativeFn {
+        args: vec![("args", TypeDecl::Any)],
+        ret_type: TypeDecl::Num,
+        code: Box::new(move |_, args| {
+            let mut sum = 0.;
+            for arg in args {
+                sum += arg.coerce_num().unwrap();
+            }
+            Value::Num(sum)
+        }),
+    }));
+    funcs.insert("Math.imul".to_string(), binary_fn(|lhs, rhs| (lhs as i32).wrapping_mul(rhs as i32) as f64));
+    funcs.insert("Math.log".to_string(), unary_fn(f64::ln));
+    funcs.insert("Math.log10".to_string(), unary_fn(f64::log10));
+    funcs.insert("Math.log1p".to_string(), unary_fn(f64::ln_1p));
+    funcs.insert("Math.log2".to_string(), unary_fn(f64::log2));
+    funcs.insert("Math.max".to_string(), FnDecl::Native(NativeFn {
+        args: vec![("args", TypeDecl::Any)],
+        ret_type: TypeDecl::Num,
+        code: Box::new(move |_, args| {
+            let max = args
+                .into_iter()
+                .map(|arg| arg.coerce_num().unwrap())
+                .fold(f64::NEG_INFINITY, f64::max);
+            Value::Num(max)
+        }),
+    }));
+    funcs.insert("Math.min".to_string(), FnDecl::Native(NativeFn {
+        args: vec![("args", TypeDecl::Any)],
+        ret_type: TypeDecl::Num,
+        code: Box::new(move |_, args| {
+            let min = args
+                .into_iter()
+                .map(|arg| arg.coerce_num().unwrap())
+                .fold(f64::INFINITY, f64::min);
+            Value::Num(min)
+        }),
+    }));
+    funcs.insert("Math.pow".to_string(), binary_fn(f64::powf));
+    funcs.insert("Math.random".to_string(), FnDecl::Native(NativeFn {
+        args: vec![],
+        ret_type: TypeDecl::Num,
+        code: Box::new(|_, _| todo!("Math.random")),
+    }));
+    funcs.insert("Math.round".to_string(), unary_fn(f64::round));
+    funcs.insert("Math.sign".to_string(), unary_fn(f64::signum));
+    funcs.insert("Math.sin".to_string(), unary_fn(f64::sin));
+    funcs.insert("Math.sinh".to_string(), unary_fn(f64::sinh));
+    funcs.insert("Math.sqrt".to_string(), unary_fn(f64::sqrt));
+    funcs.insert("Math.tan".to_string(), unary_fn(f64::tan));
+    funcs.insert("Math.tanh".to_string(), unary_fn(f64::tanh));
+    funcs.insert("Math.trunc".to_string(), unary_fn(f64::trunc));
+
     funcs.insert(
-        "print".to_string(),
+        "p".to_string(),
         FnDecl::Native(NativeFn {
             args: vec![("arg", TypeDecl::Any)],
             ret_type: TypeDecl::Any,
-            code: Box::new(print_fn),
+            code: Box::new(p_fn),
         }),
     );
+
     funcs.insert(
-        "dbg".to_string(),
-        FnDecl::Native(NativeFn {
-            args: vec![("arg", TypeDecl::Any)],
-            ret_type: TypeDecl::Any,
-            code: Box::new(dbg_fn),
-        }),
-    );
-    funcs.insert(
-        "puts".to_string(),
-        FnDecl::Native(NativeFn {
-            args: vec![("arg", TypeDecl::Any)],
-            ret_type: TypeDecl::Any,
-            code: Box::new(puts_fn),
-        }),
-    );
-    funcs.insert(
-        "i64".to_string(),
+        "BigInt".to_string(),
         FnDecl::Native(NativeFn {
             args: vec![("arg", TypeDecl::Any)],
             ret_type: TypeDecl::Int,
@@ -209,7 +253,7 @@ pub(crate) fn standard_functions<'src>() -> Functions<'src> {
         }),
     );
     funcs.insert(
-        "f64".to_string(),
+        "Number".to_string(),
         FnDecl::Native(NativeFn {
             args: vec![("arg", TypeDecl::Any)],
             ret_type: TypeDecl::Num,
@@ -224,7 +268,7 @@ pub(crate) fn standard_functions<'src>() -> Functions<'src> {
         }),
     );
     funcs.insert(
-        "str".to_string(),
+        "String".to_string(),
         FnDecl::Native(NativeFn {
             args: vec![("arg", TypeDecl::Any)],
             ret_type: TypeDecl::Str,
@@ -292,24 +336,9 @@ fn object_from_entries_fn(_: &dyn Any, args: &[Value]) -> Value {
     Value::Object(object)
 }
 
-fn print_fn(_: &dyn Any, args: &[Value]) -> Value {
-    for arg in args {
-        print!("{} ", arg);
-    }
-    println!("");
-    Value::Num(0.)
-}
-
-fn dbg_fn(_: &dyn Any, values: &[Value]) -> Value {
-    println!("dbg: {:?}", values[0]);
+fn p_fn(_: &dyn Any, values: &[Value]) -> Value {
+    println!("{:?}", values[0]);
     Value::Int(0)
-}
-
-fn puts_fn(_: &dyn Any, args: &[Value]) -> Value {
-    for arg in args {
-        print!("{}", arg);
-    }
-    Value::Num(0.)
 }
 
 pub struct ByteCode {

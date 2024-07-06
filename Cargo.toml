@@ -16,4 +16,5 @@ indexmap = { version = "2.2" }
 
 [dev-dependencies]
 ctor = { version = "*" }
+pretty_assertions = { version = "*" }
 

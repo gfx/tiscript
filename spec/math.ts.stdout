@@ -1,0 +1,20 @@
+{
+  "math_abs": {
+    "Math.abs(0)": 0,
+    "Math.abs(1)": 1,
+    "Math.abs(-1)": 1,
+    "Math.abs(1.5)": 1.5,
+    "Math.abs(-1.5)": 1.5
+  },
+  "math_acos": {
+    "Math.acos(0)": 1.5707963267948966,
+    "Math.acos(1)": 0,
+    "Math.acos(8/10)": 0.6435011087932843,
+    "Math.acos(5/3)": null
+  },
+  "math_acosh": {
+    "Math.acosh(1)": 0,
+    "Math.acosh(2)": 1.3169578969248166,
+    "Math.acosh(2.1)": 1.37285914424258
+  }
+}

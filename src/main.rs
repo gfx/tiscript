@@ -300,4 +300,14 @@ mod tests {
         .unwrap();
         assert_eq!(result, json!({ "object": {} }));
     }
+
+    #[test]
+    fn test_p() {
+        let result = eval_to_json(
+            r#"
+            p({ x: 1, y: 2 });
+        "#,
+        );
+        assert!(result.is_ok());
+    }
 }

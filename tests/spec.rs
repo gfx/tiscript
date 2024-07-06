@@ -2,6 +2,8 @@
 
 use std::{fs, path::Path};
 
+use pretty_assertions::assert_eq;
+
 use titys::util::eval;
 
 #[derive(Debug)]
