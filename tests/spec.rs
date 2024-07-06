@@ -134,7 +134,7 @@ fn test_evaluate_specs_that_should_fail() {
             "output vs tsc in {}",
             spec.filename
         );
-g
+
         if update {
             fs::write(
                 format!("{}.stderr", spec.filename),
