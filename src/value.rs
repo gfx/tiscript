@@ -169,6 +169,18 @@ impl Value {
             _ => Err(format!("Expected object, found {:?}", self)),
         }
     }
+
+    // ECMA-262 Number.isSafeInteger()
+    pub fn number_is_safe_integer(n: f64) -> bool {
+        n.fract() == 0.0 && n.is_finite() && n.abs() <= (2f64.powi(53) - 1.0)
+    }
+
+    pub fn is_safe_integer(&self) -> bool {
+        match self {
+            Self::Num(value) => Self::number_is_safe_integer(*value),
+            _ => false,
+        }
+    }
 }
 
 impl Serialize for Value {
@@ -183,7 +195,7 @@ impl Serialize for Value {
             Self::Null => serializer.serialize_none(),
             Self::Bool(value) => serializer.serialize_bool(*value),
             Self::Num(value) => {
-                if value.fract() == 0.0 {
+                if Value::number_is_safe_integer(*value) {
                     serializer.serialize_i64(*value as i64)
                 } else {
                     serializer.serialize_f64(*value)
