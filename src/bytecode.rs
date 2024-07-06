@@ -1,5 +1,7 @@
 use std::{any::Any, collections::HashMap, io::Write, rc::Rc};
 
+use indexmap::IndexMap;
+
 use crate::{
     ast::{Span, TypeDecl},
     instructions::{Instruction, OpCode},
@@ -146,6 +148,14 @@ pub(crate) fn standard_functions<'src>() -> Functions<'src> {
             code: Box::new(|_, args| Value::Array(args.into())),
         }),
     );
+    funcs.insert(
+        "Object.fromEntries".to_string(),
+        FnDecl::Native(NativeFn {
+            args: vec![("args", TypeDecl::Any)],
+            ret_type: TypeDecl::Object, // TODO: Object<K, V>
+            code: Box::new(object_from_entries_fn),
+        }),
+    );
 
     funcs.insert("sqrt".to_string(), unary_fn(f64::sqrt));
     funcs.insert("sin".to_string(), unary_fn(f64::sin));
@@ -265,6 +275,21 @@ fn binary_fn<'a>(f: fn(f64, f64) -> f64) -> FnDecl<'a> {
             Value::Num(f(lhs, rhs))
         }),
     })
+}
+
+fn object_from_entries_fn(_: &dyn Any, args: &[Value]) -> Value {
+    let mut object = IndexMap::with_capacity(args.len());
+    for arg in args {
+        match arg {
+            Value::Array(pair) => {
+                let key = pair[0].clone();
+                let value = pair[1].clone();
+                object.insert(key.must_be_str().unwrap().to_string(), value);
+            }
+            _ => return Value::Undefined
+        }
+    }
+    Value::Object(object)
 }
 
 fn print_fn(_: &dyn Any, args: &[Value]) -> Value {

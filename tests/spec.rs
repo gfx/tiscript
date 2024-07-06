@@ -82,6 +82,13 @@ fn test_evaluate_specs_that_should_pass() {
 
         let output = serde_json::ser::to_string_pretty(&result.unwrap()).unwrap() + "\n";
 
+        assert_eq!(
+            output.trim(),
+            titys2json.unwrap().trim(),
+            "output vs tsc in {}",
+            spec.filename
+        );
+
         if update {
             fs::write(format!("{}.stdout", spec.filename), output.as_bytes()).unwrap();
         } else {
@@ -89,12 +96,6 @@ fn test_evaluate_specs_that_should_pass() {
                 output.trim(),
                 spec.expected_stdout.trim(),
                 "output vs expected in {}",
-                spec.filename
-            );
-            assert_eq!(
-                output.trim(),
-                titys2json.unwrap().trim(),
-                "output vs tsc in {}",
                 spec.filename
             );
         }
@@ -120,6 +121,20 @@ fn test_evaluate_specs_that_should_fail() {
         assert!(titys2json.is_err());
         let err = result.unwrap_err();
 
+        // extract the message body (just after the first whitespace)
+        let tsc_full_message = titys2json.unwrap_err().to_string();
+        let (_, tsc_message) = tsc_full_message.split_at(tsc_full_message.find(" ").unwrap() + 1);
+
+        let titys_full_message = err.to_string();
+        let (_, err) = titys_full_message.split_at(titys_full_message.find(" ").unwrap() + 1);
+
+        assert_eq!(
+            err.trim(),
+            tsc_message.trim(),
+            "output vs tsc in {}",
+            spec.filename
+        );
+g
         if update {
             fs::write(
                 format!("{}.stderr", spec.filename),
@@ -131,21 +146,6 @@ fn test_evaluate_specs_that_should_fail() {
                 err.to_string().trim(),
                 spec.expected_stderr.trim(),
                 "output vs expected in {}",
-                spec.filename
-            );
-
-            // extract the message body (just after the first whitespace)
-            let tsc_full_message = titys2json.unwrap_err().to_string();
-            let (_, tsc_message) =
-                tsc_full_message.split_at(tsc_full_message.find(" ").unwrap() + 1);
-
-            let titys_full_message = err.to_string();
-            let (_, err) = titys_full_message.split_at(titys_full_message.find(" ").unwrap() + 1);
-
-            assert_eq!(
-                err.trim(),
-                tsc_message.trim(),
-                "output vs tsc in {}",
                 spec.filename
             );
         }

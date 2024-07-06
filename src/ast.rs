@@ -13,6 +13,7 @@ pub enum TypeDecl {
     Int,
     Str,
     Array,
+    Object,
     Coro,
 }
 
@@ -31,7 +32,8 @@ impl std::fmt::Display for TypeDecl {
                 Int => "bigint",
                 Str => "string",
                 Array => "array",
-                Coro => "[BUG] coro",
+                Object => "object",
+                Coro => "coroutine",
             }
         )
     }

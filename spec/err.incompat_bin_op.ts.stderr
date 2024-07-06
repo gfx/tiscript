@@ -1,1 +1,1 @@
-spec/err.incompat_bin_op.ts:1:26: Operator '+' cannot be applied to types 'number' and 'boolean'.
+Operator '+' cannot be applied to types 'number' and 'boolean'.

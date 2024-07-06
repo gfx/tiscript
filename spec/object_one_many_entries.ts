@@ -1,0 +1,5 @@
+export const object = {
+  foo: 42,
+  bar: "baz",
+  is_ok: true,
+};

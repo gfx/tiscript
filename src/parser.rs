@@ -49,6 +49,7 @@ fn factor(i: Span) -> IResult<Span, Expression> {
         tmpl_str_literal,
         num_literal,
         array_literal,
+        object_literal,
         func_call,
         ident,
         parens,
@@ -243,11 +244,68 @@ fn false_literal(input: Span) -> IResult<Span, Expression> {
 fn array_literal(input: Span) -> IResult<Span, Expression> {
     let (r, list) = space_delimited(delimited(
         char('['),
-        many0(delimited(multispace0, expr, space_delimited(opt(tag(","))))),
+        many0(delimited(
+            multispace0,
+            expr,
+            space_delimited(opt(char(','))),
+        )),
         char(']'),
     ))(input)?;
-    let name = Span::new("Array.from");
-    Ok((r, Expression::new(ExprEnum::FnInvoke(name, list), input)))
+    let array_from = Span::new("Array.from");
+    Ok((
+        r,
+        Expression::new(ExprEnum::FnInvoke(array_from, list), input),
+    ))
+}
+
+fn object_literal(input: Span) -> IResult<Span, Expression> {
+    // { identifier: expr, "string": expr, ... }
+    let (r, pairs) = space_delimited(delimited(
+        char('{'),
+        many0(delimited(
+            multispace0,
+            pair(
+                alt((ident, dq_str_literal, sq_str_literal)),
+                preceded(
+                    multispace0,
+                    preceded(char(':'), preceded(multispace0, expr)),
+                ),
+            ),
+            space_delimited(opt(char(','))),
+        )),
+        char('}'),
+    ))(input)?;
+    let array_from = Span::new("Array.from");
+
+    // make Vec<(Expression, Expression)> to Vec<Expression> where each element is Array.from(k, v) in the latter.
+    let list = pairs
+        .into_iter()
+        .map(|(k, v)| {
+            let k = match k {
+                Expression {
+                    expr: ExprEnum::Ident(s),
+                    span: _,
+                } => Expression {
+                    expr: ExprEnum::StrLiteral(s.to_string()),
+                    span: k.span,
+                },
+                Expression {
+                    expr: ExprEnum::StrLiteral(_),
+                    span: _,
+                } => k,
+                _ => unreachable!(),
+            };
+            let span = k.span.clone();
+            println!("k: {:?}, v: {:?}", k.expr, v.expr);
+            Expression::new(ExprEnum::FnInvoke(array_from, vec![k, v]), span)
+        })
+        .collect();
+
+    let object_from_entries = Span::new("Object.fromEntries");
+    Ok((
+        r,
+        Expression::new(ExprEnum::FnInvoke(object_from_entries, list), input),
+    ))
 }
 
 fn parens(i: Span) -> IResult<Span, Expression> {

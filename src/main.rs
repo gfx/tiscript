@@ -7,15 +7,13 @@ use std::{
 };
 
 use titys::{
-    set_debug,
-    type_checker::{type_check, TypeCheckContext},
-    util::eval,
-    util::parse_program,
+    compiler::Compiler, set_debug, type_checker::{type_check, TypeCheckContext}, util::{eval, parse_program}
 };
 
 struct Params {
     pub check: bool,
     pub show_ast: bool,
+    pub disasm: bool,
     pub compact: bool,
     pub source_file: String,
     pub source: String,
@@ -23,7 +21,7 @@ struct Params {
 
 fn show_help(cmd: &str, exit_code: i32) {
     print!(
-        r#"Usage: {cmd} [--check] [--show-ast] [--compact|--pretty] [--debug] [--eval <source>] [source.ts]
+        r#"Usage: {cmd} [--check] [--show-ast] [--disasm] [--compact|--pretty] [--debug] [--eval <source>] [source.ts]
 "#
     );
     exit(exit_code);
@@ -37,7 +35,8 @@ fn parse_params() -> Params {
     let mut source_file: Option<String> = None;
     let mut source: Option<String> = None;
     let mut check = false;
-    let mut ast = false;
+    let mut show_ast = false;
+    let mut disasm = false;
     let mut compact = false;
     let mut no_more_option = false;
 
@@ -45,7 +44,8 @@ fn parse_params() -> Params {
     while let Some(arg) = next_arg {
         match &arg as &str {
             "--check" => check = true,
-            "--show-ast" => ast = true,
+            "--show-ast" => show_ast = true,
+            "--disasm" => disasm = true,
             "--compact" => {
                 compact = true;
             }
@@ -104,7 +104,8 @@ fn parse_params() -> Params {
 
     Params {
         check,
-        show_ast: ast,
+        show_ast,
+        disasm,
         compact,
         source_file: source_file.unwrap(),
         source: source.unwrap(),
@@ -136,6 +137,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 exit(1);
             }
         }
+        return Ok(());
+    } else if params.disasm {
+        let stmts = parse_program(&params.source, Path::new(&params.source_file))?;
+        let mut ctx = TypeCheckContext::new();
+        match type_check(&stmts, &mut ctx) {
+            Ok(_) => {
+            }
+            Err(e) => {
+                println!(
+                    "{}:{}:{}: {}",
+                    params.source_file,
+                    e.span.location_line(),
+                    e.span.get_utf8_column(),
+                    e.msg
+                );
+                exit(1);
+            }
+        }
+
+        let mut compiler = Compiler::new();
+        compiler.compile(&stmts)?;
+        compiler.disasm(&mut std::io::stdout().lock())?;
         return Ok(());
     }
     let exports = eval(&params.source, Path::new(&params.source_file))?;
@@ -265,5 +288,16 @@ mod tests {
         )
         .unwrap();
         assert_eq!(result, json!({ "array": [] }));
+    }
+
+    #[test]
+    fn test_object_empty() {
+        let result = eval_to_json(
+            r#"
+            export const object = {};
+        "#,
+        )
+        .unwrap();
+        assert_eq!(result, json!({ "object": {} }));
     }
 }
