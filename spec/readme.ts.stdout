@@ -1,0 +1,8 @@
+{
+  "EditorConfig": {
+    "tabSize": 4,
+    "trimTrailingWhitespace": true,
+    "endOfLine": "\n",
+    "encoding": "utf-8"
+  }
+}

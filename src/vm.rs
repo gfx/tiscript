@@ -235,6 +235,7 @@ impl Vm {
             }
 
             match instruction.op {
+                OpCode::Nop => (),
                 OpCode::LoadLiteral => {
                     let stack_frame = self.top_mut()?;
                     stack_frame

@@ -1,10 +1,10 @@
 use nom::{
     branch::alt,
-    bytes::complete::{is_not, tag, take_while_m_n},
-    character::complete::{alpha1, alphanumeric1, char, multispace0, multispace1},
+    bytes::complete::{is_not, tag, take_until, take_while_m_n},
+    character::complete::{alpha1, alphanumeric1, char},
     combinator::{cut, map, map_opt, map_res, opt, recognize, value, verify},
     error::ParseError,
-    multi::{fold_many0, many0, separated_list0},
+    multi::{fold_many0, many0, many1, separated_list0},
     number::complete::recognize_float,
     sequence::{delimited, pair, preceded, terminated},
     Finish, IResult, InputTake, Offset, Parser,
@@ -22,6 +22,22 @@ impl<'a> GetSpan<'a> for Statements<'a> {
     }
 }
 
+pub fn multispace0<'a, E: ParseError<Span<'a>>>(input: Span<'a>) -> IResult<Span<'a>, Span<'a>, E> {
+    recognize(many0(alt((
+        line_comment,
+        block_comment,
+        nom::character::complete::multispace1,
+    ))))(input)
+}
+
+pub fn multispace1<'a, E: ParseError<Span<'a>>>(input: Span<'a>) -> IResult<Span<'a>, Span<'a>, E> {
+    recognize(many1(alt((
+        line_comment,
+        block_comment,
+        nom::character::complete::multispace1,
+    ))))(input)
+}
+
 fn space_delimited<'src, O, E>(
     f: impl Parser<Span<'src>, O, E>,
 ) -> impl FnMut(Span<'src>) -> IResult<Span<'src>, O, E>
@@ -36,6 +52,26 @@ where
 /// Note: `i` shall start earlier than `r`, otherwise wrapping would occur.
 pub(crate) fn calc_offset<'a>(i: Span<'a>, r: Span<'a>) -> Span<'a> {
     i.take(i.offset(&r))
+}
+
+fn shebang(i: Span) -> IResult<Span, ()> {
+    let (r, _) = tag("#!")(i)?;
+    let (r, _) = take_until("\n")(r)?;
+    Ok((r, ()))
+}
+
+// JavaScript-style line comments (// ...)
+fn line_comment<'a, E: ParseError<Span<'a>>>(i: Span<'a>) -> IResult<Span<'a>, Span<'a>, E> {
+    let (r, _) = tag("//")(i)?;
+    let (r, _) = take_until("\n")(r)?;
+    Ok((r, i))
+}
+// JavaScript-style block comments (/* ... */), not nestable.
+fn block_comment<'a, E: ParseError<Span<'a>>>(i: Span<'a>) -> IResult<Span<'a>, Span<'a>, E> {
+    let (r, _) = tag("/*")(i)?;
+    let (r, _) = take_until("*/")(r)?;
+    let (r, _) = tag("*/")(r)?;
+    Ok((r, i))
 }
 
 fn factor(i: Span) -> IResult<Span, Expression> {
@@ -296,7 +332,6 @@ fn object_literal(input: Span) -> IResult<Span, Expression> {
                 _ => unreachable!(),
             };
             let span = k.span.clone();
-            println!("k: {:?}, v: {:?}", k.expr, v.expr);
             Expression::new(ExprEnum::FnInvoke(array_from, vec![k, v]), span)
         })
         .collect();
@@ -584,17 +619,20 @@ fn general_statement<'a>(last: bool) -> impl Fn(Span<'a>) -> IResult<Span<'a>, S
 }
 
 pub(crate) fn last_statement(input: Span) -> IResult<Span, Statement> {
+    let (input, _) = many0(alt((line_comment, block_comment)))(input)?;
     general_statement(true)(input)
 }
 
 pub(crate) fn statement(input: Span) -> IResult<Span, Statement> {
+    let (input, _) = many0(alt((line_comment, block_comment)))(input)?;
     general_statement(false)(input)
 }
 
 fn statements(i: Span) -> IResult<Span, Statements> {
+    let (i, _) = opt(shebang)(i)?;
     let (i, mut stmts) = many0(statement)(i)?;
     let (i, last) = opt(last_statement)(i)?;
-    let (i, _) = opt(multispace0)(i)?;
+    let (i, _) = many0(alt((multispace1, line_comment, block_comment)))(i)?;
     if let Some(last) = last {
         stmts.push(last);
     }

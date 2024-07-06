@@ -1,6 +1,7 @@
 #[derive(Debug, Clone, Copy)]
 #[repr(u8)]
 pub enum OpCode {
+  Nop,
   LoadLiteral,
   Store,
   // Push the value of the index arg0 in the stack to the top of the stack.
