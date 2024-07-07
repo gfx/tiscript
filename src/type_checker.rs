@@ -93,8 +93,7 @@ fn tc_coerce_type<'src>(
         (Undefined, Undefined) => Undefined,
         (Null, Null) => Null,
         (Bool, Bool) => Bool,
-        (Num | Int, Num) => Num,
-        (Num, Int) => Num,
+        (Num , Num) => Num,
         (Int, Int) => Int,
         (Str, Str) => Str,
         (Coro, Coro) => Coro,
@@ -208,7 +207,13 @@ fn tc_expr<'src>(
             TypeDecl::Num
         }
         Plus(ex) => {
-            tc_coerce_type(&tc_expr(ex, ctx)?, &TypeDecl::Num, ex.span)?;
+            let td = tc_expr(ex, ctx)?;
+            if let Err(_) = tc_coerce_type(&td, &TypeDecl::Num, ex.span) {
+                return Err(TypeCheckError::new(
+                    format!("Operator '+' cannot be applied to type '{td}'."),
+                    ex.span,
+                ));
+            }
             TypeDecl::Num
         }
         Add(lhs, rhs) => tc_binary_op(&lhs, &rhs, ctx, "+")?,
