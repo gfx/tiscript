@@ -179,6 +179,7 @@ fn tc_expr<'src>(
         NullLiteral => TypeDecl::Null,
         BoolLiteral(_val) => TypeDecl::Bool,
         NumLiteral(_val) => TypeDecl::Num,
+        BigIntLiteral(_val) => TypeDecl::Int,
         StrLiteral(_val) => TypeDecl::Str,
         Ident(str) => ctx.get_var(str).ok_or_else(|| {
             TypeCheckError::new(format!("Variable \"{}\" not found in scope", str), e.span)
@@ -196,6 +197,19 @@ fn tc_expr<'src>(
                 tc_coerce_type(&arg_ty, &decl.1, *arg_span)?;
             }
             func.ret_type()
+        }
+        Not(_ex) => {
+            TypeDecl::Bool
+        }
+        Minus(ex) => {
+            if let Err(_) = tc_coerce_type(&tc_expr(ex, ctx)?, &TypeDecl::Int, ex.span) {
+                tc_coerce_type(&tc_expr(ex, ctx)?, &TypeDecl::Num, ex.span)?;
+            }
+            TypeDecl::Num
+        }
+        Plus(ex) => {
+            tc_coerce_type(&tc_expr(ex, ctx)?, &TypeDecl::Num, ex.span)?;
+            TypeDecl::Num
         }
         Add(lhs, rhs) => tc_binary_op(&lhs, &rhs, ctx, "+")?,
         Sub(lhs, rhs) => tc_binary_op(&lhs, &rhs, ctx, "-")?,

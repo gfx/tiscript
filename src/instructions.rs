@@ -8,6 +8,8 @@ pub enum OpCode {
   Copy,
   /// Duplicate the value on the top of the stack arg0 times
   Dup,
+  Not,
+  Neg,
   Add,
   Sub,
   Mul,

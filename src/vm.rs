@@ -257,6 +257,20 @@ impl Vm {
                     let top = stack.last().unwrap().clone();
                     stack.extend((0..instruction.arg0).map(|_| top.clone()));
                 }
+                OpCode::Not => {
+                    let stack = &mut self.top_mut()?.stack;
+                    let top = stack.pop().expect("Not needs an argument");
+                    stack.push(Value::Bool(!top.to_bool()));
+                }
+                OpCode::Neg => {
+                    let stack = &mut self.top_mut()?.stack;
+                    let top = stack.pop().expect("Neg needs an argument");
+                    match top {
+                        Value::Num(n) => stack.push(Value::Num(-n)),
+                        Value::Int(n) => stack.push(Value::Int(-n)),
+                        _ => panic!("Neg needs a number"),
+                    }
+                }
                 OpCode::Add => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_add),
                 OpCode::Sub => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_sub),
                 OpCode::Mul => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_mul),

@@ -171,6 +171,11 @@ impl Compiler {
                 self.add_load_literal_inst(id);
                 self.stack_top()
             }
+            ExprEnum::BigIntLiteral(num) => {
+                let id = self.add_literal(Value::Int(*num));
+                self.add_load_literal_inst(id);
+                self.stack_top()
+            }
             ExprEnum::StrLiteral(str) => {
                 let id = self.add_literal(Value::Str(str.clone()));
                 self.add_load_literal_inst(id);
@@ -190,6 +195,19 @@ impl Compiler {
                     return Err(format!("Variable not found: {ident:?}").into());
                 }
             }
+            ExprEnum::Not(ex) => {
+                let ex = self.compile_expr(ex)?;
+                self.add_copy_inst(ex);
+                self.add_inst(OpCode::Not, 0);
+                self.stack_top()
+            }
+            ExprEnum::Minus(ex) => {
+                let ex = self.compile_expr(ex)?;
+                self.add_copy_inst(ex);
+                self.add_inst(OpCode::Neg, 0);
+                self.stack_top()
+            }
+            ExprEnum::Plus(ex) => self.compile_expr(ex)?,
             ExprEnum::Add(lhs, rhs) => self.bin_op(OpCode::Add, lhs, rhs)?,
             ExprEnum::Sub(lhs, rhs) => self.bin_op(OpCode::Sub, lhs, rhs)?,
             ExprEnum::Mul(lhs, rhs) => self.bin_op(OpCode::Mul, lhs, rhs)?,

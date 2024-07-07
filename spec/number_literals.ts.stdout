@@ -1,0 +1,8 @@
+{
+  "answer": 42,
+  "minus": -42,
+  "pi": 3.14,
+  "plus": 3.14,
+  "scientific": 0.0012,
+  "scientific_w_underscores": 1.123456e-31
+}

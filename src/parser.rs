@@ -1,12 +1,11 @@
 use nom::{
     branch::alt,
     bytes::complete::{is_not, tag, take_until, take_while_m_n},
-    character::complete::{alpha1, alphanumeric1, char},
+    character::complete::{alpha1, alphanumeric1, char, digit1},
     combinator::{cut, map, map_opt, map_res, opt, recognize, value, verify},
     error::ParseError,
     multi::{fold_many0, many0, many1, separated_list0},
-    number::complete::recognize_float,
-    sequence::{delimited, pair, preceded, terminated},
+    sequence::{delimited, pair, preceded, terminated, tuple},
     Finish, IResult, InputTake, Offset, Parser,
 };
 
@@ -74,6 +73,28 @@ fn block_comment<'a, E: ParseError<Span<'a>>>(i: Span<'a>) -> IResult<Span<'a>, 
     Ok((r, i))
 }
 
+fn unary_op(i: Span) -> IResult<Span, Expression> {
+    let (r, op) = opt(space_delimited(alt((tag("!"), tag("-"), tag("+")))))(i)?;
+    let (r, ex) = space_delimited(factor)(r)?;
+
+    if let Some(op) = op {
+        return Ok((
+            r,
+            Expression {
+                expr: match *op.fragment() {
+                    "!" => ExprEnum::Not(Box::new(ex)),
+                    "-" => ExprEnum::Minus(Box::new(ex)),
+                    "+" => ExprEnum::Plus(Box::new(ex)),
+                    _ => unreachable!(),
+                },
+                span: i,
+            },
+        ));
+    } else {
+        return Ok((r, ex));
+    }
+}
+
 fn factor(i: Span) -> IResult<Span, Expression> {
     alt((
         undefined_literal,
@@ -83,6 +104,7 @@ fn factor(i: Span) -> IResult<Span, Expression> {
         dq_str_literal,
         sq_str_literal,
         tmpl_str_literal,
+        bigint_literal,
         num_literal,
         array_literal,
         object_literal,
@@ -243,11 +265,33 @@ fn tmpl_str_literal(i: Span) -> IResult<Span, Expression> {
 }
 
 fn num_literal(input: Span) -> IResult<Span, Expression> {
-    let (r, v) = space_delimited(recognize_float)(input)?;
+    let (r, v) = space_delimited(recognize(pair(
+        alt((
+            map(
+                tuple((
+                    pair(digit1, many0(alt((digit1, tag("_"))))),
+                    opt(pair(
+                        char('.'),
+                        opt(pair(digit1, many0(alt((digit1, tag("_")))))),
+                    )),
+                )),
+                |_| (),
+            ),
+            map(
+                tuple((char('.'), pair(digit1, many0(alt((digit1, tag("_"))))))),
+                |_| (),
+            ),
+        )),
+        opt(tuple((
+            alt((char('e'), char('E'))),
+            opt(alt((char('+'), char('-')))),
+            cut(pair(digit1, many0(alt((digit1, tag("_")))))),
+        ))),
+    )))(input)?;
     Ok((
         r,
         Expression::new(
-            ExprEnum::NumLiteral(v.parse().map_err(|_| {
+            ExprEnum::NumLiteral(v.replace("_", "").parse().map_err(|_| {
                 nom::Err::Error(nom::error::Error {
                     input,
                     code: nom::error::ErrorKind::Digit,
@@ -256,6 +300,97 @@ fn num_literal(input: Span) -> IResult<Span, Expression> {
             v,
         ),
     ))
+}
+
+// a bigint literal is an integer literal with `n` suffix such as `0n`, `123n`.
+// each digit can be separated by `_` such as `1_000_000n`.
+fn bigint_literal(input: Span) -> IResult<Span, Expression> {
+    let (r, v) = space_delimited(recognize(tuple((
+        digit1,
+        many0(alt((digit1, tag("_")))),
+        char('n'),
+    ))))(input)?;
+    let digits = v.fragment().trim_end_matches('n').replace("_", "");
+    Ok((
+        r,
+        Expression::new(
+            ExprEnum::BigIntLiteral(digits.parse().map_err(|_| {
+                nom::Err::Error(nom::error::Error {
+                    input,
+                    code: nom::error::ErrorKind::Digit,
+                })
+            })?),
+            v,
+        ),
+    ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_num_literal_simple() {
+        let input = Span::new("3.14");
+        let (_r, ex) = num_literal(input).unwrap();
+        assert_eq!(ex.expr, ExprEnum::NumLiteral(3.14));
+    }
+
+    #[test]
+    fn test_num_literal_w_underscores() {
+        let input = Span::new("1_000_000.000_000");
+        let (_r, ex) = num_literal(input).unwrap();
+        assert_eq!(ex.expr, ExprEnum::NumLiteral(1_000_000.0));
+    }
+
+    #[test]
+    fn test_bigint_literal_0n() {
+        let input = Span::new("0n");
+        let (_r, ex) = bigint_literal(input).unwrap();
+        assert_eq!(ex.expr, ExprEnum::BigIntLiteral(0));
+    }
+
+    #[test]
+    fn test_bigint_literal_1n() {
+        let input = Span::new("1n");
+        let (_r, ex) = bigint_literal(input).unwrap();
+        assert_eq!(ex.expr, ExprEnum::BigIntLiteral(1));
+    }
+
+    #[test]
+    fn test_bigint_literal_w_underscores() {
+        let input = Span::new("1_000_000n");
+        let (_r, ex) = bigint_literal(input).unwrap();
+        assert_eq!(ex.expr, ExprEnum::BigIntLiteral(1_000_000));
+    }
+
+    #[test]
+    fn test_unary_op_not() {
+        let input = Span::new("!true");
+        let (_r, ex) = unary_op(input).unwrap();
+        assert_eq!(*ex.span.fragment(), "!true");
+    }
+
+    #[test]
+    fn test_unary_op_plus() {
+        let input = Span::new("+3");
+        let (_r, ex) = unary_op(input).unwrap();
+        assert_eq!(*ex.span.fragment(), "+3");
+    }
+
+    #[test]
+    fn test_unary_op_minus() {
+        let input = Span::new("-3");
+        let (_r, ex) = unary_op(input).unwrap();
+        assert_eq!(*ex.span.fragment(), "-3");
+    }
+
+    #[test]
+    fn test_parse_sq_literal() {
+        let input = Span::new("'abc'");
+        let (_r, ex) = sq_str_literal(input).unwrap();
+        assert_eq!(ex.expr, ExprEnum::StrLiteral("abc".to_string()));
+    }
 }
 
 fn undefined_literal(input: Span) -> IResult<Span, Expression> {
@@ -349,10 +484,10 @@ fn parens(i: Span) -> IResult<Span, Expression> {
 }
 
 fn term(i: Span) -> IResult<Span, Expression> {
-    let (r, init) = factor(i)?;
+    let (r, init) = unary_op(i)?;
 
     let res = fold_many0(
-        pair(space_delimited(alt((char('*'), char('/')))), factor),
+        pair(space_delimited(alt((char('*'), char('/')))), unary_op),
         move || init.clone(),
         |acc, (op, val): (char, Expression)| {
             let span = calc_offset(i, acc.span);

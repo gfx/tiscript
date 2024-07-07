@@ -279,6 +279,35 @@ mod tests {
         assert_eq!(result, json!({"three": 3}));
     }
 
+    // BigInt is not serializable to JSON
+    #[test]
+    fn test_bigint_literals() {
+        let result = eval_to_json(
+            r#"
+            export const zero = 0n;
+            export const answer = 42n;
+            export const minus = -42n;
+            export const w_underscore = 1_000_000n;
+            export const i32_max = 2147483647n;
+            export const i64_max = 9223372036854775807n;
+        "#,
+        )
+        .unwrap();
+        assert_eq!(
+            result,
+            json!(
+                {
+                    "zero": 0,
+                    "answer": 42,
+                    "minus": -42,
+                    "w_underscore": 1000000,
+                    "i32_max": 2147483647i32,
+                    "i64_max": 9223372036854775807i64
+                }
+            )
+        );
+    }
+
     #[test]
     fn test_array_empty() {
         let result = eval_to_json(

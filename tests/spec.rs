@@ -79,8 +79,8 @@ fn test_evaluate_specs_that_should_pass() {
         let result = eval(&source, Path::new(&spec.filename));
         let titys2json = run_titys2json(&spec.filename);
 
-        assert!(result.is_ok());
-        assert!(titys2json.is_ok());
+        assert!(result.is_ok(), "titys should pass in {}", spec.filename);
+        assert!(titys2json.is_ok(), "titys2json should pass in {}", spec.filename);
 
         let output = serde_json::ser::to_string_pretty(&result.unwrap()).unwrap() + "\n";
 
