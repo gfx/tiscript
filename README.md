@@ -93,8 +93,9 @@ This is a list of features that are planned or implemented:
 * [ ] `bigint` literals (actually 64-bit int)
 * [x] array literals
 * [x] object literals
-* [ ] [WIP] arithmetic operators (`+`, `-`, `*`, `/`, `%`)
+* [ ] [WIP] arithmetic operators (`+`, `-`, `*`, `/`, `%`, `**`)
 * [ ] [WIP] comparison operators (`==`, `!=`, `===`, `!==`, `<`, `>`, `<=`, `>=`)
+* [ ] increment and decrement operators (`++`, `--`)
 * [ ] ternary operator (`cond ? t : f`)
 * [ ] logical operators (`&&`, `||`, `!`)
 * [ ] nullish coalescing operator (`??`)
@@ -103,6 +104,7 @@ This is a list of features that are planned or implemented:
 * [ ] array spread syntax
 * [ ] `class` statement
 * [ ] `for-of` loop
+* [ ] exceptions (`Error`, `try-catch-finally`, `throw` and so on)
 * [ ] temporal module
 * [x] function call
 * [ ] method call
