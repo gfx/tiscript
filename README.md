@@ -72,6 +72,85 @@ fn main() {
 ```
 -->
 
+## Features
+
+This is a list of features that are planned or implemented:
+
+* [x] shebang
+* [x] line and block comments
+* [x] `export`
+* [x] `export default`
+* [x] `let`
+* [x] `const`
+* [x] `if` and `else`
+* [x] `undefined` literals
+* [x] `null` literals
+* [x] `boolean` literals
+* [x] `number` literals
+* [x] `string` literals
+* [ ] template `string` literals
+* [ ] tagged template `string` literals
+* [ ] `bigint` literals (actually 64-bit int)
+* [x] array literals
+* [x] object literals
+* [ ] [WIP] arithmetic operators (`+`, `-`, `*`, `/`, `%`)
+* [ ] [WIP] comparison operators (`==`, `!=`, `===`, `!==`, `<`, `>`, `<=`, `>=`)
+* [ ] ternary operator (`cond ? t : f`)
+* [ ] logical operators (`&&`, `||`, `!`)
+* [ ] nullish coalescing operator (`??`)
+* [ ] null-conditional operator (`?.`)
+* [ ] object spread syntax
+* [ ] array spread syntax
+* [ ] `class` statement
+* [ ] `for-of` loop
+* [ ] temporal module
+* [x] function call
+* [ ] method call
+* [ ] function declaration with `function` keyword
+* [ ] arrow function
+* [ ] function as a first-class object
+* [ ] generator function (`function*`)
+* [ ] limited recursive calls of functions
+* [ ] static `import`
+* [ ] dynamic `import`
+* [x] `Math` class methods
+* [ ] `Math` class properties
+* [ ] `String` class methods
+* [ ] `String` instance methods
+* [ ] `Number` class methods
+* [ ] `Number` instance methods
+* [x] primitive type annotations
+* [ ] literal type annotations
+* [ ] union type annotations
+* [ ] intersection type annotations
+* [ ] tuple type annotations
+* [ ] array type annotations
+* [ ] object type annotations
+* [ ] `interface` statement
+* [ ] `type` statement
+* [ ] null-assertion operator (trailing `!`)
+
+This is a list of features that won't be implemented:
+
+* `var` declaration
+* `eval` function
+* `new Function()`
+* `Date` class
+* C-style `for` loop
+* `for-in` loop
+* `while` loop
+* `do-while` loop
+* `async` and `await`
+* `symbol`
+* true bigint
+* unlimited recursion
+* anything that meets Turing completeness
+
+## Similar Works
+
+* jsonnet https://jsonnet.org/
+* tyson https://github.com/jetify-com/tyson
+
 ## Authors
 
 FUJI, Goro (gfx).
