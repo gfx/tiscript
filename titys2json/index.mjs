@@ -9,8 +9,11 @@ function die(msg) {
   process.exit(1);
 }
 
+const progname = path.basename(process.argv[1]);
+
 const tsFile = process.argv[2] ?? die("No file provided.");
-const TMPDIR = os.tmpdir() ?? die("No TMPDIR provided.");
+const TMPDIR = `${os.tmpdir() ?? die("No TMPDIR provided.")}/${progname}`;
+fs.mkdirSync(TMPDIR, { recursive: true });
 const jsFile = `${TMPDIR}/${path.basename(tsFile).replace(/\.m?tsx?$/, ".js")}`;
 const mjsFile = `${TMPDIR}/${path
   .basename(tsFile)
@@ -64,7 +67,9 @@ for (const diagnostic of allDiagnostics) {
 if (emitResult.emitSkipped) {
   process.exit(1);
 } else {
-  fs.renameSync(jsFile, mjsFile);
+  if (fs.existsSync(jsFile)) {
+    fs.renameSync(jsFile, mjsFile);
+  }
   const result = await import(mjsFile);
   console.log(JSON.stringify(result, null, 2));
 }
