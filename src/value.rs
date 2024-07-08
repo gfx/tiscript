@@ -119,13 +119,9 @@ impl Value {
     pub fn coerce_num(&self) -> Result<f64, String> {
         Ok(match self {
             Self::Num(value) => *value,
-            Self::Int(value) => *value as f64,
-            _ => {
-                return Err(format!(
-                    "Coercion failed: {:?} cannot be coerced to number",
-                    self
-                ))
-            }
+            Self::Int(_) => return Err("Cannot convert a BigInt value to a number".to_string()),
+            Self::Str(value) => value.parse().unwrap_or(f64::NAN),
+            _ => f64::NAN,
         })
     }
 

@@ -131,8 +131,8 @@ fn binary_op_type(lhs: &TypeDecl, rhs: &TypeDecl) -> Result<TypeDecl, ()> {
         (Any, _) => Any,
         (_, Any) => Any,
         (Bool, Bool) => Bool,
+        (Num, Num) => Num,
         (Int, Int) => Int,
-        (Num | Int, Num | Int) => Num,
         (Str, Str) => Str,
         _ => return Err(()),
     })

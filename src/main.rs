@@ -7,7 +7,10 @@ use std::{
 };
 
 use titys::{
-    compiler::Compiler, set_debug, type_checker::{type_check, TypeCheckContext}, util::{eval, parse_program}
+    compiler::Compiler,
+    set_debug,
+    type_checker::{type_check, TypeCheckContext},
+    util::{eval, parse_program},
 };
 
 struct Params {
@@ -142,8 +145,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let stmts = parse_program(&params.source, Path::new(&params.source_file))?;
         let mut ctx = TypeCheckContext::new();
         match type_check(&stmts, &mut ctx) {
-            Ok(_) => {
-            }
+            Ok(_) => {}
             Err(e) => {
                 println!(
                     "{}:{}:{}: {}",
@@ -306,6 +308,29 @@ mod tests {
                 }
             )
         );
+    }
+
+    // TODO: literal types are not yet supported so the error message does not match TypeScript compiler's.
+    #[test]
+    fn test_err_add_number_and_bigint() {
+        let result = eval_to_json(
+            r#"
+            export const a = 1 + 42n;
+        "#,
+        )
+        .unwrap_err();
+        assert_eq!(result.to_string(), "test.ts:2:30: Operator '+' cannot be applied to types 'number' and 'bigint'.");
+    }
+
+    #[test]
+    fn test_err_add_bigint_and_number() {
+        let result = eval_to_json(
+            r#"
+            export const a = 1n + 42;
+        "#,
+        )
+        .unwrap_err();
+        assert_eq!(result.to_string(), "test.ts:2:30: Operator '+' cannot be applied to types 'bigint' and 'number'.");
     }
 
     #[test]

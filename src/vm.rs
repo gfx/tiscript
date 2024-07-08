@@ -69,8 +69,6 @@ fn bin_op_add(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
     match (lhs, rhs) {
         (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Num(lhs + rhs)),
         (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Int(lhs + rhs)),
-        (Value::Num(lhs), Value::Int(rhs)) => Ok(Value::Num(lhs + *rhs as f64)),
-        (Value::Int(lhs), Value::Num(rhs)) => Ok(Value::Num(*lhs as f64 + rhs)),
         (Value::Str(lhs), Value::Str(rhs)) => Ok(Value::Str(lhs.clone() + rhs)),
         _ => Err(err_bin_op("+", lhs, rhs)),
     }
@@ -80,8 +78,6 @@ fn bin_op_sub(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
     match (lhs, rhs) {
         (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Num(lhs - rhs)),
         (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Int(lhs - rhs)),
-        (Value::Num(lhs), Value::Int(rhs)) => Ok(Value::Num(lhs - *rhs as f64)),
-        (Value::Int(lhs), Value::Num(rhs)) => Ok(Value::Num(*lhs as f64 - rhs)),
         _ => Err(err_bin_op("-", lhs, rhs)),
     }
 }
@@ -90,8 +86,6 @@ fn bin_op_mul(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
     match (lhs, rhs) {
         (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Num(lhs * rhs)),
         (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Int(lhs * rhs)),
-        (Value::Num(lhs), Value::Int(rhs)) => Ok(Value::Num(lhs * *rhs as f64)),
-        (Value::Int(lhs), Value::Num(rhs)) => Ok(Value::Num(*lhs as f64 * rhs)),
         _ => Err(err_bin_op("*", lhs, rhs)),
     }
 }
@@ -99,9 +93,7 @@ fn bin_op_mul(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
 fn bin_op_div(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
     match (lhs, rhs) {
         (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Num(lhs / rhs)),
-        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Num(*lhs as f64 / *rhs as f64)),
-        (Value::Num(lhs), Value::Int(rhs)) => Ok(Value::Num(lhs / *rhs as f64)),
-        (Value::Int(lhs), Value::Num(rhs)) => Ok(Value::Num(*lhs as f64 / rhs)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Int(lhs / rhs)),
         _ => Err(err_bin_op("/", lhs, rhs)),
     }
 }
@@ -271,10 +263,10 @@ impl Vm {
                         _ => panic!("Neg needs a number"),
                     }
                 }
-                OpCode::Add => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_add),
-                OpCode::Sub => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_sub),
-                OpCode::Mul => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_mul),
-                OpCode::Div => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_div),
+                OpCode::Add => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_add)?,
+                OpCode::Sub => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_sub)?,
+                OpCode::Mul => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_mul)?,
+                OpCode::Div => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_div)?,
                 OpCode::Call => {
                     let stack = &self.top()?.stack;
                     let args = &stack[stack.len() - instruction.arg0 as usize..];
@@ -332,7 +324,7 @@ impl Vm {
                         continue;
                     }
                 }
-                OpCode::Lt => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_lt),
+                OpCode::Lt => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_lt)?,
                 OpCode::Pop => {
                     let stack = &mut self.top_mut()?.stack;
                     stack.resize(stack.len() - instruction.arg0 as usize, Value::default());
@@ -400,11 +392,12 @@ impl Vm {
     fn interpret_bin_op(
         stack: &mut Vec<Value>,
         op: impl FnOnce(&Value, &Value) -> Result<Value, Box<dyn Error>>,
-    ) {
+    ) -> Result<(), Box<dyn Error>> {
         let rhs = stack.pop().expect("Stack underflow");
         let lhs = stack.pop().expect("Stack underflow");
-        let res = op(&lhs, &rhs).unwrap();
+        let res = op(&lhs, &rhs)?;
         stack.push(res);
+        Ok(())
     }
 
     fn back_trace(&self) {
