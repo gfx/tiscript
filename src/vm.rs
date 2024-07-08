@@ -70,6 +70,8 @@ fn bin_op_add(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
         (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Num(lhs + rhs)),
         (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Int(lhs + rhs)),
         (Value::Str(lhs), Value::Str(rhs)) => Ok(Value::Str(lhs.clone() + rhs)),
+        (Value::Str(lhs), rhs) => Ok(Value::Str(lhs.clone() + &rhs.to_string())),
+        (lhs, Value::Str(rhs)) => Ok(Value::Str(lhs.to_string() + rhs)),
         _ => Err(err_bin_op("+", lhs, rhs)),
     }
 }

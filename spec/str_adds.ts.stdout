@@ -1,0 +1,8 @@
+{
+  "s": "Hello, world!",
+  "t": "foo 42 bar",
+  "u": "foo true bar",
+  "v": "foo false bar",
+  "w": "foo undefined bar",
+  "x": "foo null bar"
+}

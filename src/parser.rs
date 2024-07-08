@@ -395,7 +395,7 @@ mod tests {
 
 fn undefined_literal(input: Span) -> IResult<Span, Expression> {
     let (r, _) = space_delimited(tag("undefined"))(input)?;
-    Ok((r, Expression::new(ExprEnum::NullLiteral, input)))
+    Ok((r, Expression::new(ExprEnum::UndefinedLiteral, input)))
 }
 
 fn null_literal(input: Span) -> IResult<Span, Expression> {

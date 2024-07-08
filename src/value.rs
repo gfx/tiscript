@@ -19,8 +19,9 @@ pub enum ValueKind {
     Coro,      // TODO: generator function
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum Value {
+    #[default]
     Undefined,
     Null,
     Bool(bool),
@@ -30,12 +31,6 @@ pub enum Value {
     Array(Vec<Value>),
     Object(IndexMap<String, Value>),
     Coro(Rc<RefCell<Vm>>),
-}
-
-impl Default for Value {
-    fn default() -> Self {
-        Self::Undefined
-    }
 }
 
 impl PartialEq for Value {

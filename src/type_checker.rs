@@ -106,6 +106,20 @@ fn tc_coerce_type<'src>(
     })
 }
 
+fn tc_add_op<'src>(
+    lhs: &Expression<'src>,
+    rhs: &Expression<'src>,
+    ctx: &mut TypeCheckContext<'src, '_>,
+) -> Result<TypeDecl, TypeCheckError<'src>> {
+    let lhst = tc_expr(lhs, ctx)?;
+    let rhst = tc_expr(rhs, ctx)?;
+    match (&lhst, &rhst) {
+        (TypeDecl::Str, _) => Ok(TypeDecl::Str),
+        (_, TypeDecl::Str) => Ok(TypeDecl::Str),
+        _ => tc_binary_op(&lhs, &rhs, ctx, "+"),
+    }
+}
+
 fn tc_binary_op<'src>(
     lhs: &Expression<'src>,
     rhs: &Expression<'src>,
@@ -216,7 +230,7 @@ fn tc_expr<'src>(
             }
             TypeDecl::Num
         }
-        Add(lhs, rhs) => tc_binary_op(&lhs, &rhs, ctx, "+")?,
+        Add(lhs, rhs) => tc_add_op(&lhs, &rhs, ctx)?,
         Sub(lhs, rhs) => tc_binary_op(&lhs, &rhs, ctx, "-")?,
         Mul(lhs, rhs) => tc_binary_op(&lhs, &rhs, ctx, "*")?,
         Mod(lhs, rhs) => tc_binary_op(&lhs, &rhs, ctx, "%")?,
