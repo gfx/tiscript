@@ -263,6 +263,7 @@ fn tc_expr<'src>(
             let _res = tc_expr(ex, ctx)?;
             TypeDecl::Any
         }
+        Spread(_ex) => unreachable!("Spread operator should be handled in parser"),
     })
 }
 

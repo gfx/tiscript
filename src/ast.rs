@@ -48,6 +48,7 @@ pub enum ExprEnum<'src> {
     NumLiteral(f64),
     BigIntLiteral(i64),
     StrLiteral(String),
+    Spread(Box<Expression<'src>>),
     FnInvoke(Span<'src>, Vec<Expression<'src>>),
     Not(Box<Expression<'src>>),
     Minus(Box<Expression<'src>>),

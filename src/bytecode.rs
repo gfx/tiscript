@@ -1,4 +1,4 @@
-use std::{any::Any, collections::HashMap, io::Write, rc::Rc};
+use std::{any::Any, collections::HashMap, error::Error, io::Write, rc::Rc};
 
 use indexmap::IndexMap;
 
@@ -113,14 +113,14 @@ impl<'src> UserFn<'src> {
 pub struct NativeFn<'src> {
     args: Vec<(&'src str, TypeDecl)>,
     ret_type: TypeDecl,
-    pub(crate) code: Box<dyn Fn(&dyn Any, &[Value]) -> Value>,
+    pub(crate) code: Box<dyn Fn(&dyn Any, &[Value]) -> Result<Value, Box<dyn Error>>>,
 }
 
 impl<'src> NativeFn<'src> {
     pub fn new(
         args: Vec<(&'src str, TypeDecl)>,
         ret_type: TypeDecl,
-        code: Box<dyn Fn(&dyn Any, &[Value]) -> Value>,
+        code: Box<dyn Fn(&dyn Any, &[Value]) -> Result<Value, Box<dyn Error>>>,
     ) -> Self {
         Self {
             args,
@@ -145,7 +145,15 @@ pub(crate) fn standard_functions<'src>() -> Functions<'src> {
         FnDecl::Native(NativeFn {
             args: vec![("args", TypeDecl::Any)],
             ret_type: TypeDecl::Array, // TODO: Array<T>
-            code: Box::new(|_, args| Value::Array(args.into())),
+            code: Box::new(|_, args| Ok(Value::Array(args.into()))),
+        }),
+    );
+    funcs.insert(
+        "Array.spread%".to_string(),
+        FnDecl::Native(NativeFn {
+            args: vec![("args", TypeDecl::Any)],
+            ret_type: TypeDecl::Array, // TODO: Array<T>
+            code: Box::new(array_spread_fn),
         }),
     );
     funcs.insert(
@@ -156,7 +164,6 @@ pub(crate) fn standard_functions<'src>() -> Functions<'src> {
             code: Box::new(object_from_entries_fn),
         }),
     );
-
     // cf. https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math
     funcs.insert("Math.abs".to_string(), unary_fn(f64::abs));
     funcs.insert("Math.acos".to_string(), unary_fn(f64::acos));
@@ -168,57 +175,75 @@ pub(crate) fn standard_functions<'src>() -> Functions<'src> {
     funcs.insert("Math.atanh".to_string(), unary_fn(f64::atanh));
     funcs.insert("Math.cbrt".to_string(), unary_fn(f64::cbrt));
     funcs.insert("Math.ceil".to_string(), unary_fn(f64::ceil));
-    funcs.insert("Math.clz32".to_string(), unary_fn(|x| x.to_bits().leading_zeros() as f64));
+    funcs.insert(
+        "Math.clz32".to_string(),
+        unary_fn(|x| x.to_bits().leading_zeros() as f64),
+    );
     funcs.insert("Math.cos".to_string(), unary_fn(f64::cos));
     funcs.insert("Math.cosh".to_string(), unary_fn(f64::cosh));
     funcs.insert("Math.exp".to_string(), unary_fn(f64::exp));
     funcs.insert("Math.expm1".to_string(), unary_fn(f64::exp_m1));
     funcs.insert("Math.floor".to_string(), unary_fn(f64::floor));
     funcs.insert("Math.fround".to_string(), unary_fn(f64::round));
-    funcs.insert("Math.hypot".to_string(), FnDecl::Native(NativeFn {
-        args: vec![("args", TypeDecl::Any)],
-        ret_type: TypeDecl::Num,
-        code: Box::new(move |_, args| {
-            let mut sum = 0.;
-            for arg in args {
-                sum += arg.coerce_num().unwrap();
-            }
-            Value::Num(sum)
+    funcs.insert(
+        "Math.hypot".to_string(),
+        FnDecl::Native(NativeFn {
+            args: vec![("args", TypeDecl::Any)],
+            ret_type: TypeDecl::Num,
+            code: Box::new(move |_, args| {
+                let mut sum = 0.;
+                for arg in args {
+                    sum += arg.coerce_num().unwrap();
+                }
+                Ok(Value::Num(sum))
+            }),
         }),
-    }));
-    funcs.insert("Math.imul".to_string(), binary_fn(|lhs, rhs| (lhs as i32).wrapping_mul(rhs as i32) as f64));
+    );
+    funcs.insert(
+        "Math.imul".to_string(),
+        binary_fn(|lhs, rhs| (lhs as i32).wrapping_mul(rhs as i32) as f64),
+    );
     funcs.insert("Math.log".to_string(), unary_fn(f64::ln));
     funcs.insert("Math.log10".to_string(), unary_fn(f64::log10));
     funcs.insert("Math.log1p".to_string(), unary_fn(f64::ln_1p));
     funcs.insert("Math.log2".to_string(), unary_fn(f64::log2));
-    funcs.insert("Math.max".to_string(), FnDecl::Native(NativeFn {
-        args: vec![("args", TypeDecl::Any)],
-        ret_type: TypeDecl::Num,
-        code: Box::new(move |_, args| {
-            let max = args
-                .into_iter()
-                .map(|arg| arg.coerce_num().unwrap())
-                .fold(f64::NEG_INFINITY, f64::max);
-            Value::Num(max)
+    funcs.insert(
+        "Math.max".to_string(),
+        FnDecl::Native(NativeFn {
+            args: vec![("args", TypeDecl::Any)],
+            ret_type: TypeDecl::Num,
+            code: Box::new(move |_, args| {
+                let max = args
+                    .into_iter()
+                    .map(|arg| arg.coerce_num().unwrap())
+                    .fold(f64::NEG_INFINITY, f64::max);
+                Ok(Value::Num(max))
+            }),
         }),
-    }));
-    funcs.insert("Math.min".to_string(), FnDecl::Native(NativeFn {
-        args: vec![("args", TypeDecl::Any)],
-        ret_type: TypeDecl::Num,
-        code: Box::new(move |_, args| {
-            let min = args
-                .into_iter()
-                .map(|arg| arg.coerce_num().unwrap())
-                .fold(f64::INFINITY, f64::min);
-            Value::Num(min)
+    );
+    funcs.insert(
+        "Math.min".to_string(),
+        FnDecl::Native(NativeFn {
+            args: vec![("args", TypeDecl::Any)],
+            ret_type: TypeDecl::Num,
+            code: Box::new(move |_, args| {
+                let min = args
+                    .into_iter()
+                    .map(|arg| arg.coerce_num().unwrap())
+                    .fold(f64::INFINITY, f64::min);
+                Ok(Value::Num(min))
+            }),
         }),
-    }));
+    );
     funcs.insert("Math.pow".to_string(), binary_fn(f64::powf));
-    funcs.insert("Math.random".to_string(), FnDecl::Native(NativeFn {
-        args: vec![],
-        ret_type: TypeDecl::Num,
-        code: Box::new(|_, _| todo!("Math.random")),
-    }));
+    funcs.insert(
+        "Math.random".to_string(),
+        FnDecl::Native(NativeFn {
+            args: vec![],
+            ret_type: TypeDecl::Num,
+            code: Box::new(|_, _| todo!("Math.random")),
+        }),
+    );
     funcs.insert("Math.round".to_string(), unary_fn(f64::round));
     funcs.insert("Math.sign".to_string(), unary_fn(f64::signum));
     funcs.insert("Math.sin".to_string(), unary_fn(f64::sin));
@@ -243,12 +268,12 @@ pub(crate) fn standard_functions<'src>() -> Functions<'src> {
             args: vec![("arg", TypeDecl::Any)],
             ret_type: TypeDecl::Int,
             code: Box::new(move |_, args| {
-                Value::Int(
+                Ok(Value::Int(
                     args.first()
                         .expect("function missing argument")
                         .coerce_int()
                         .unwrap_or(0),
-                )
+                ))
             }),
         }),
     );
@@ -258,12 +283,12 @@ pub(crate) fn standard_functions<'src>() -> Functions<'src> {
             args: vec![("arg", TypeDecl::Any)],
             ret_type: TypeDecl::Num,
             code: Box::new(move |_, args| {
-                Value::Num(
+                Ok(Value::Num(
                     args.first()
                         .expect("function missing argument")
                         .coerce_num()
-                        .unwrap_or(0.),
-                )
+                        .unwrap_or(f64::NAN),
+                ))
             }),
         }),
     );
@@ -273,12 +298,12 @@ pub(crate) fn standard_functions<'src>() -> Functions<'src> {
             args: vec![("arg", TypeDecl::Any)],
             ret_type: TypeDecl::Str,
             code: Box::new(move |_, args| {
-                Value::Str(
+                Ok(Value::Str(
                     args.first()
                         .expect("function missing argument")
                         .coerce_str()
                         .unwrap_or("".to_string()),
-                )
+                ))
             }),
         }),
     );
@@ -290,12 +315,11 @@ fn unary_fn<'a>(f: fn(f64) -> f64) -> FnDecl<'a> {
         args: vec![("lhs", TypeDecl::Num), ("rhs", TypeDecl::Num)],
         ret_type: TypeDecl::Num,
         code: Box::new(move |_, args| {
-            Value::Num(f(args
+            Ok(Value::Num(f(args
                 .into_iter()
                 .next()
                 .expect("function missing argument")
-                .coerce_num()
-                .unwrap()))
+                .coerce_num()?)))
         }),
     })
 }
@@ -309,36 +333,69 @@ fn binary_fn<'a>(f: fn(f64, f64) -> f64) -> FnDecl<'a> {
             let lhs = args
                 .next()
                 .expect("function missing the first argument")
-                .coerce_num()
-                .unwrap();
+                .coerce_num()?;
             let rhs = args
                 .next()
                 .expect("function missing the second argument")
-                .coerce_num()
-                .unwrap();
-            Value::Num(f(lhs, rhs))
+                .coerce_num()?;
+            Ok(Value::Num(f(lhs, rhs)))
         }),
     })
 }
 
-fn object_from_entries_fn(_: &dyn Any, args: &[Value]) -> Value {
+// [1, 2, 3, ...[4, 5, 6], 7, 8, 9, ...[10, 11, 12]]
+// is transformed into (just like in template strings):
+// Array.spread%([[1, 2, 3], [4, 5, 6]], [[7, 8, 9], [10, 11, 12]])
+fn array_spread_fn(_: &dyn Any, args: &[Value]) -> Result<Value, Box<dyn Error>> {
+    let mut result: Vec<Value> = Vec::new();
+
+    let mut args = args.into_iter();
+    let subarrays = args
+        .next()
+        .expect("function missing the first argument")
+        .must_be_array()?;
+    let spreadings = args
+        .next()
+        .expect("function missing the first argument")
+        .must_be_array()?;
+
+    let mut i = 0;
+    while i < subarrays.len() {
+        let subarray = subarrays[i].must_be_array()?;
+        for value in subarray {
+            result.push(value.clone());
+        }
+
+        if i < spreadings.len() {
+            let spreading = spreadings[i].must_be_array()?;
+            for value in spreading {
+                result.push(value.clone());
+            }
+        }
+        i += 1;
+    }
+
+    Ok(Value::Array(result))
+}
+
+fn object_from_entries_fn(_: &dyn Any, args: &[Value]) -> Result<Value, Box<dyn Error>> {
     let mut object = IndexMap::with_capacity(args.len());
     for arg in args {
         match arg {
             Value::Array(pair) => {
                 let key = pair[0].clone();
                 let value = pair[1].clone();
-                object.insert(key.must_be_str().unwrap().to_string(), value);
+                object.insert(key.to_string(), value);
             }
-            _ => return Value::Undefined
+            _ => return Ok(Value::Undefined),
         }
     }
-    Value::Object(object)
+    Ok(Value::Object(object))
 }
 
-fn p_fn(_: &dyn Any, values: &[Value]) -> Value {
+fn p_fn(_: &dyn Any, values: &[Value]) -> Result<Value, Box<dyn Error>> {
     println!("{:?}", values[0]);
-    Value::Int(0)
+    Ok(Value::Int(0))
 }
 
 pub struct ByteCode {

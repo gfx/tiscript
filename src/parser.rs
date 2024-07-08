@@ -53,6 +53,10 @@ pub(crate) fn calc_offset<'a>(i: Span<'a>, r: Span<'a>) -> Span<'a> {
     i.take(i.offset(&r))
 }
 
+fn invoke_fn<'a>(name: Span<'a>, args: Vec<Expression<'a>>, span: Span<'a>) -> Expression<'a> {
+    Expression::new(ExprEnum::FnInvoke(name, args), span)
+}
+
 fn shebang(i: Span) -> IResult<Span, ()> {
     let (r, _) = tag("#!")(i)?;
     let (r, _) = take_until("\n")(r)?;
@@ -144,7 +148,7 @@ fn ident(input: Span) -> IResult<Span, Expression> {
 fn identifier(input: Span) -> IResult<Span, Span> {
     recognize(pair(
         // . is not a ECMA-262 spec but for a tentative solution to call class methods.
-        alt((alpha1, tag("_"), tag("$"), tag("."))),
+        alt((alpha1, tag("_"), tag("$"))),
         many0(alt((alphanumeric1, tag("_"), tag("$"), tag(".")))),
     ))(input)
 }
@@ -325,74 +329,6 @@ fn bigint_literal(input: Span) -> IResult<Span, Expression> {
     ))
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_num_literal_simple() {
-        let input = Span::new("3.14");
-        let (_r, ex) = num_literal(input).unwrap();
-        assert_eq!(ex.expr, ExprEnum::NumLiteral(3.14));
-    }
-
-    #[test]
-    fn test_num_literal_w_underscores() {
-        let input = Span::new("1_000_000.000_000");
-        let (_r, ex) = num_literal(input).unwrap();
-        assert_eq!(ex.expr, ExprEnum::NumLiteral(1_000_000.0));
-    }
-
-    #[test]
-    fn test_bigint_literal_0n() {
-        let input = Span::new("0n");
-        let (_r, ex) = bigint_literal(input).unwrap();
-        assert_eq!(ex.expr, ExprEnum::BigIntLiteral(0));
-    }
-
-    #[test]
-    fn test_bigint_literal_1n() {
-        let input = Span::new("1n");
-        let (_r, ex) = bigint_literal(input).unwrap();
-        assert_eq!(ex.expr, ExprEnum::BigIntLiteral(1));
-    }
-
-    #[test]
-    fn test_bigint_literal_w_underscores() {
-        let input = Span::new("1_000_000n");
-        let (_r, ex) = bigint_literal(input).unwrap();
-        assert_eq!(ex.expr, ExprEnum::BigIntLiteral(1_000_000));
-    }
-
-    #[test]
-    fn test_unary_op_not() {
-        let input = Span::new("!true");
-        let (_r, ex) = unary_op(input).unwrap();
-        assert_eq!(*ex.span.fragment(), "!true");
-    }
-
-    #[test]
-    fn test_unary_op_plus() {
-        let input = Span::new("+3");
-        let (_r, ex) = unary_op(input).unwrap();
-        assert_eq!(*ex.span.fragment(), "+3");
-    }
-
-    #[test]
-    fn test_unary_op_minus() {
-        let input = Span::new("-3");
-        let (_r, ex) = unary_op(input).unwrap();
-        assert_eq!(*ex.span.fragment(), "-3");
-    }
-
-    #[test]
-    fn test_parse_sq_literal() {
-        let input = Span::new("'abc'");
-        let (_r, ex) = sq_str_literal(input).unwrap();
-        assert_eq!(ex.expr, ExprEnum::StrLiteral("abc".to_string()));
-    }
-}
-
 fn undefined_literal(input: Span) -> IResult<Span, Expression> {
     let (r, _) = space_delimited(tag("undefined"))(input)?;
     Ok((r, Expression::new(ExprEnum::UndefinedLiteral, input)))
@@ -413,21 +349,66 @@ fn false_literal(input: Span) -> IResult<Span, Expression> {
     Ok((r, Expression::new(ExprEnum::BoolLiteral(false), input)))
 }
 
+// the spread operator works like a unary operator
+fn spread_expr(input: Span) -> IResult<Span, Expression> {
+    let (r, (_, ex)) = space_delimited(pair(tag("..."), expr))(input)?;
+    Ok((r, Expression::new(ExprEnum::Spread(Box::new(ex)), input)))
+}
+
 fn array_literal(input: Span) -> IResult<Span, Expression> {
     let (r, list) = space_delimited(delimited(
         char('['),
         many0(delimited(
             multispace0,
-            expr,
+            alt((expr, spread_expr)),
             space_delimited(opt(char(','))),
         )),
         char(']'),
     ))(input)?;
+
     let array_from = Span::new("Array.from");
-    Ok((
-        r,
-        Expression::new(ExprEnum::FnInvoke(array_from, list), input),
-    ))
+
+    // if a spread expr exists, transform it into Array.spread%(), otherwise Array.from().
+    if list.iter().any(|ex| match ex.expr {
+        ExprEnum::Spread(_) => true,
+        _ => false,
+    }) {
+        // e.g. [1, 2, ...expr1, 3, 4, ...expr2]
+        let mut subarrays: Vec<Expression> = Vec::new(); // e.g. [[1, 2], [3, 4]]
+        let mut spreadings: Vec<Expression> = Vec::new(); // e.g. [expr1, expr2]
+        let mut temp: Vec<Expression> = Vec::new();
+
+        for ex in list {
+            match ex.expr {
+                ExprEnum::Spread(ex) => {
+                    subarrays.push(invoke_fn(array_from, temp, ex.span.clone()));
+                    spreadings.push(*ex);
+                    temp = Vec::new();
+            }
+                _ => {
+                    temp.push(ex);
+                }
+            }
+        }
+        if !temp.is_empty() {
+            let span = temp[0].span.clone();
+            subarrays.push(invoke_fn(array_from, temp, span));
+        }
+
+        Ok((
+            r,
+            invoke_fn(
+                Span::new("Array.spread%"),
+                vec![
+                    invoke_fn(array_from, subarrays, input),
+                    invoke_fn(array_from, spreadings, input),
+                ],
+                input,
+            ),
+        ))
+    } else {
+        Ok((r, invoke_fn(array_from, list, input)))
+    }
 }
 
 fn object_literal(input: Span) -> IResult<Span, Expression> {
@@ -472,11 +453,7 @@ fn object_literal(input: Span) -> IResult<Span, Expression> {
         })
         .collect();
 
-    let object_from_entries = Span::new("Object.fromEntries");
-    Ok((
-        r,
-        Expression::new(ExprEnum::FnInvoke(object_from_entries, list), input),
-    ))
+    Ok((r, invoke_fn(Span::new("Object.fromEntries"), list, input)))
 }
 
 fn parens(i: Span) -> IResult<Span, Expression> {
@@ -787,4 +764,80 @@ fn statements(i: Span) -> IResult<Span, Statements> {
 pub fn statements_finish(i: Span) -> Result<Statements, nom::error::Error<Span>> {
     let (_, res) = statements(i).finish()?;
     Ok(res)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_num_literal_simple() {
+        let input = Span::new("3.14");
+        let (_r, ex) = num_literal(input).unwrap();
+        assert_eq!(ex.expr, ExprEnum::NumLiteral(3.14));
+    }
+
+    #[test]
+    fn test_num_literal_w_underscores() {
+        let input = Span::new("1_000_000.000_000");
+        let (_r, ex) = num_literal(input).unwrap();
+        assert_eq!(ex.expr, ExprEnum::NumLiteral(1_000_000.0));
+    }
+
+    #[test]
+    fn test_bigint_literal_0n() {
+        let input = Span::new("0n");
+        let (_r, ex) = bigint_literal(input).unwrap();
+        assert_eq!(ex.expr, ExprEnum::BigIntLiteral(0));
+    }
+
+    #[test]
+    fn test_bigint_literal_1n() {
+        let input = Span::new("1n");
+        let (_r, ex) = bigint_literal(input).unwrap();
+        assert_eq!(ex.expr, ExprEnum::BigIntLiteral(1));
+    }
+
+    #[test]
+    fn test_bigint_literal_w_underscores() {
+        let input = Span::new("1_000_000n");
+        let (_r, ex) = bigint_literal(input).unwrap();
+        assert_eq!(ex.expr, ExprEnum::BigIntLiteral(1_000_000));
+    }
+
+    #[test]
+    fn test_unary_op_not() {
+        let input = Span::new("!true");
+        let (_r, ex) = unary_op(input).unwrap();
+        assert_eq!(*ex.span.fragment(), "!true");
+    }
+
+    #[test]
+    fn test_unary_op_plus() {
+        let input = Span::new("+3");
+        let (_r, ex) = unary_op(input).unwrap();
+        assert_eq!(*ex.span.fragment(), "+3");
+    }
+
+    #[test]
+    fn test_unary_op_minus() {
+        let input = Span::new("-3");
+        let (_r, ex) = unary_op(input).unwrap();
+        assert_eq!(*ex.span.fragment(), "-3");
+    }
+
+    #[test]
+    fn test_parse_sq_literal() {
+        let input = Span::new("'abc'");
+        let (_r, ex) = sq_str_literal(input).unwrap();
+        assert_eq!(ex.expr, ExprEnum::StrLiteral("abc".to_string()));
+    }
+
+    #[test]
+    fn test_array_spread() {
+        let input = Span::new("[1, 2, ...arr, 3, 4]");
+        let r = array_literal(input);
+        eprintln!("{r:?}");
+        assert!(r.is_ok());
+    }
 }

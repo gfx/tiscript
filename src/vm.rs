@@ -158,7 +158,7 @@ impl Vm {
             .ok_or_else(|| format!("Function {fn_name:?} was not found"))?;
         let fn_def = match fn_def {
             FnDef::User(user) => user.clone(),
-            FnDef::Native(n) => return Ok((*n.code)(self.user_data.as_ref(), args)),
+            FnDef::Native(n) => return (*n.code)(self.user_data.as_ref(), args),
         };
 
         self.stack_frames
@@ -313,7 +313,7 @@ impl Vm {
                             }
                         }
                         FnDef::Native(native) => {
-                            let res = (native.code)(self.user_data.as_ref(), args);
+                            let res = (native.code)(self.user_data.as_ref(), args)?;
                             let stack = &mut self.top_mut()?.stack;
                             stack.resize(
                                 stack.len() - instruction.arg0 as usize - 1,

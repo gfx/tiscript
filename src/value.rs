@@ -1,4 +1,4 @@
-use std::{cell::RefCell, fmt::Display, rc::Rc};
+use std::{cell::RefCell, error::Error, fmt::Display, rc::Rc};
 
 use indexmap::IndexMap;
 use serde::Serialize;
@@ -147,17 +147,24 @@ impl Value {
         })
     }
 
-    pub fn must_be_str(&self) -> Result<&str, String> {
+    pub fn must_be_str(&self) -> Result<&str, Box<dyn Error>> {
         match self {
             Value::Str(s) => Ok(s),
-            _ => Err(format!("Expected string, found {:?}", self)),
+            _ => Err(format!("Expected string, found {:?}", self).into()),
         }
     }
 
-    pub fn must_be_map(&self) -> Result<&IndexMap<String, Value>, String> {
+    pub fn must_be_array(&self) -> Result<&Vec<Value>, Box<dyn Error>> {
+        match self {
+            Value::Array(ary) => Ok(ary),
+            _ => Err(format!("Expected object, found {:?}", self).into()),
+        }
+    }
+
+    pub fn must_be_map(&self) -> Result<&IndexMap<String, Value>, Box<dyn Error>> {
         match self {
             Value::Object(map) => Ok(map),
-            _ => Err(format!("Expected object, found {:?}", self)),
+            _ => Err(format!("Expected object, found {:?}", self).into()),
         }
     }
 

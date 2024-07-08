@@ -241,13 +241,13 @@ impl Compiler {
                 self.add_copy_inst(cond);
                 let jf_inst = self.add_jf_inst();
                 let stack_size_before = self.target_stack.len();
-                self.compile_stmts_or_zero(true_branch)?;
+                self.compile_stmts_or_nop(true_branch)?;
                 self.coerce_stack(StkIdx(stack_size_before + 1));
                 let jmp_inst = self.add_inst(Jmp, 0);
                 self.fixup_jmp(jf_inst);
                 self.target_stack.resize(stack_size_before, Target::Temp);
                 if let Some(false_branch) = false_branch.as_ref() {
-                    self.compile_stmts_or_zero(&false_branch)?;
+                    self.compile_stmts_or_nop(&false_branch)?;
                 }
                 self.coerce_stack(StkIdx(stack_size_before + 1));
                 self.fixup_jmp(jmp_inst);
@@ -259,6 +259,7 @@ impl Compiler {
                 self.add_inst(OpCode::Await, 0);
                 self.stack_top()
             }
+            ExprEnum::Spread(_) => unreachable!("Spread operator should be handled in parser")
         })
     }
 
@@ -401,17 +402,16 @@ impl Compiler {
         Ok(last_result)
     }
 
-    fn compile_stmts_or_zero(&mut self, stmts: &Statements) -> Result<StkIdx, Box<dyn Error>> {
+    fn compile_stmts_or_nop(&mut self, stmts: &Statements) -> Result<StkIdx, Box<dyn Error>> {
         Ok(self.compile_stmts(stmts)?.unwrap_or_else(|| {
-            let id = self.add_literal(Value::Num(0.));
-            self.add_load_literal_inst(id);
+            self.add_inst(OpCode::Nop, 0);
             self.stack_top()
         }))
     }
 
     pub fn compile(&mut self, stmts: &Statements) -> Result<(), Box<dyn std::error::Error>> {
         let name = "main";
-        self.compile_stmts_or_zero(stmts)?;
+        self.compile_stmts_or_nop(stmts)?;
         self.add_fn(name.to_string(), &[], false);
         Ok(())
     }
