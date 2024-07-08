@@ -148,6 +148,9 @@ This is a list of features that won't be implemented:
 * unlimited recursion
 * anything that meets Turing completeness
 
+
+Note that **any features that TiTys recognizes but TypeScript compiler does not** are invalid, but not vice versa. This is because TiTys is a strict subset of TypeScript.
+
 ## Similar Works
 
 * jsonnet https://jsonnet.org/
