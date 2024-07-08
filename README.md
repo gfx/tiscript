@@ -87,7 +87,7 @@ This is a list of features that are planned or implemented:
 * [x] `null` literals
 * [x] `boolean` literals
 * [x] `number` literals
-* [x] `string` literals
+* [ ] [WIP] `string` literals
 * [ ] template `string` literals
 * [ ] tagged template `string` literals
 * [x] `bigint` literals (actually 64-bit int)
