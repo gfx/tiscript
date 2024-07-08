@@ -98,6 +98,14 @@ fn bin_op_div(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
     }
 }
 
+fn bin_op_mod(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
+    match (lhs, rhs) {
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Num(lhs % rhs)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Int(lhs % rhs)),
+        _ => Err(err_bin_op("%", lhs, rhs)),
+    }
+}
+
 fn bin_op_lt(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
     match (lhs, rhs) {
         (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Bool(*lhs < *rhs)),
@@ -267,6 +275,7 @@ impl Vm {
                 OpCode::Sub => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_sub)?,
                 OpCode::Mul => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_mul)?,
                 OpCode::Div => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_div)?,
+                OpCode::Mod => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_mod)?,
                 OpCode::Call => {
                     let stack = &self.top()?.stack;
                     let args = &stack[stack.len() - instruction.arg0 as usize..];

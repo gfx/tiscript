@@ -13,6 +13,7 @@ pub enum OpCode {
   Add,
   Sub,
   Mul,
+  Mod,
   Div,
   Call,
   Jmp,

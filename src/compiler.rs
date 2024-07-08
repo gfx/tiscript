@@ -212,6 +212,7 @@ impl Compiler {
             ExprEnum::Sub(lhs, rhs) => self.bin_op(OpCode::Sub, lhs, rhs)?,
             ExprEnum::Mul(lhs, rhs) => self.bin_op(OpCode::Mul, lhs, rhs)?,
             ExprEnum::Div(lhs, rhs) => self.bin_op(OpCode::Div, lhs, rhs)?,
+            ExprEnum::Mod(lhs, rhs) => self.bin_op(OpCode::Mod, lhs, rhs)?,
             ExprEnum::Gt(lhs, rhs) => self.bin_op(OpCode::Lt, rhs, lhs)?,
             ExprEnum::Lt(lhs, rhs) => self.bin_op(OpCode::Lt, lhs, rhs)?,
             ExprEnum::FnInvoke(name, args) => {

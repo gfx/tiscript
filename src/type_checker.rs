@@ -219,6 +219,7 @@ fn tc_expr<'src>(
         Add(lhs, rhs) => tc_binary_op(&lhs, &rhs, ctx, "+")?,
         Sub(lhs, rhs) => tc_binary_op(&lhs, &rhs, ctx, "-")?,
         Mul(lhs, rhs) => tc_binary_op(&lhs, &rhs, ctx, "*")?,
+        Mod(lhs, rhs) => tc_binary_op(&lhs, &rhs, ctx, "%")?,
         Div(lhs, rhs) => tc_binary_op(&lhs, &rhs, ctx, "/")?,
         Lt(lhs, rhs) => tc_binary_cmp(&lhs, &rhs, ctx, "<")?,
         Gt(lhs, rhs) => tc_binary_cmp(&lhs, &rhs, ctx, ">")?,

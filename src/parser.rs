@@ -487,17 +487,18 @@ fn term(i: Span) -> IResult<Span, Expression> {
     let (r, init) = unary_op(i)?;
 
     let res = fold_many0(
-        pair(space_delimited(alt((char('*'), char('/')))), unary_op),
+        pair(
+            space_delimited(alt((char('*'), char('/'), char('%')))),
+            unary_op,
+        ),
         move || init.clone(),
         |acc, (op, val): (char, Expression)| {
             let span = calc_offset(i, acc.span);
             match op {
                 '*' => Expression::new(ExprEnum::Mul(Box::new(acc), Box::new(val)), span),
                 '/' => Expression::new(ExprEnum::Div(Box::new(acc), Box::new(val)), span),
-                _ => panic!(
-                    "Multiplicative expression should have '*' \
-              or '/' operator"
-                ),
+                '%' => Expression::new(ExprEnum::Mod(Box::new(acc), Box::new(val)), span),
+                _ => panic!("Multiplicative expression should have '*', '%', or '/' operator"),
             }
         },
     )(r);
