@@ -268,8 +268,7 @@ mod tests {
     }
 
     #[test]
-    fn test_adds() {
-        // multiple exports
+    fn test_number_add() {
         let result = eval_to_json(
             r#"
             const one: number = 1;
@@ -310,6 +309,50 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_bigint_add() {
+        let result = eval_to_json(
+            r#"
+            export const a = 1n + 42n;
+        "#,
+        )
+        .unwrap();
+        assert_eq!(result, json!({ "a": 43 }));
+    }
+
+    #[test]
+    fn test_bigint_sub() {
+        let result = eval_to_json(
+            r#"
+            export const a = 42n - 1n;
+        "#,
+        )
+        .unwrap();
+        assert_eq!(result, json!({ "a": 41 }));
+    }
+
+    #[test]
+    fn test_bigint_mul() {
+        let result = eval_to_json(
+            r#"
+            export const a = 42n * 2n;
+        "#,
+        )
+        .unwrap();
+        assert_eq!(result, json!({ "a": 84 }));
+    }
+
+    #[test]
+    fn test_bigint_div() {
+        let result = eval_to_json(
+            r#"
+            export const a = 42n / 3n;
+        "#,
+        )
+        .unwrap();
+        assert_eq!(result, json!({ "a": 14 }));
+    }
+
     // TODO: literal types are not yet supported so the error message does not match TypeScript compiler's.
     #[test]
     fn test_err_add_number_and_bigint() {
@@ -319,7 +362,10 @@ mod tests {
         "#,
         )
         .unwrap_err();
-        assert_eq!(result.to_string(), "test.ts:2:30: Operator '+' cannot be applied to types 'number' and 'bigint'.");
+        assert_eq!(
+            result.to_string(),
+            "test.ts:2:30: Operator '+' cannot be applied to types 'number' and 'bigint'."
+        );
     }
 
     #[test]
@@ -330,7 +376,10 @@ mod tests {
         "#,
         )
         .unwrap_err();
-        assert_eq!(result.to_string(), "test.ts:2:30: Operator '+' cannot be applied to types 'bigint' and 'number'.");
+        assert_eq!(
+            result.to_string(),
+            "test.ts:2:30: Operator '+' cannot be applied to types 'bigint' and 'number'."
+        );
     }
 
     #[test]

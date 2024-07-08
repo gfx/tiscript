@@ -90,7 +90,7 @@ This is a list of features that are planned or implemented:
 * [x] `string` literals
 * [ ] template `string` literals
 * [ ] tagged template `string` literals
-* [ ] `bigint` literals (actually 64-bit int)
+* [x] `bigint` literals (actually 64-bit int)
 * [x] array literals
 * [x] object literals
 * [ ] [WIP] arithmetic operators (`+`, `-`, `*`, `/`, `%`, `**`)
