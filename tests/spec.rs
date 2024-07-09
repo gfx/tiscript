@@ -36,7 +36,7 @@ fn collect_specs(spec_dir: &Path) -> Vec<Spec> {
 
         if path.is_file() {
             let filename = path.file_name().unwrap().to_str().unwrap();
-            if filename.ends_with(".ts") {
+            if filename.ends_with(".ts") || filename.ends_with(".mts") {
                 let mut expected_stdout = String::new(); // $filename.stdout
                 let mut expected_stderr = String::new(); // $filename.stderr
 
