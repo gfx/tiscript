@@ -78,7 +78,7 @@ This is a list of features in ECMA-262 that are planned or implemented:
 
 * [x] shebang
 * [x] line and block comments
-* [x] `export`
+* [x] [WIP] `export` (there are bugs. see `tests_fail` directory)
 * [x] `export default`
 * [x] `let`
 * [x] `const`
@@ -100,8 +100,8 @@ This is a list of features in ECMA-262 that are planned or implemented:
 * [ ] logical operators (`&&`, `||`, `!`)
 * [ ] nullish coalescing operator (`??`)
 * [ ] null-conditional operator (`?.`)
-* [ ] object spread syntax
-* [ ] [WIP] array spread syntax
+* [x] object spread syntax
+* [x] array spread syntax
 * [ ] `class` statement
 * [ ] `for-of` loop
 * [ ] exceptions (`Error`, `try-catch-finally`, `throw` and so on)
