@@ -254,7 +254,7 @@ impl Vm {
                     let stack = &mut self.top_mut()?.stack;
                     let (r, b) = (stack.len() - instruction.arg0 as usize).overflowing_sub(1);
                     if b {
-                        panic!("[BUG] Stack overflow in `[{}] Copy {}` where stack.len() is {} (see --disasm to to look into the instruction)", ip, instruction.arg0, stack.len());
+                        panic!("[BUG] Stack overflow in `[{}] {:?}` where stack.len() is {} (see --disasm to to look into the instruction)", ip, instruction, stack.len());
                     }
                     stack.push(stack[r].clone());
                 }
