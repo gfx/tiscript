@@ -119,11 +119,7 @@ pub struct NativeFn<'src> {
 }
 
 impl<'src> NativeFn<'src> {
-    pub fn new(
-        args: Vec<(&'src str, TypeDecl)>,
-        ret_type: TypeDecl,
-        code: NativeFnCode,
-    ) -> Self {
+    pub fn new(args: Vec<(&'src str, TypeDecl)>, ret_type: TypeDecl, code: NativeFnCode) -> Self {
         Self {
             args,
             ret_type,
@@ -145,15 +141,18 @@ pub(crate) fn standard_functions<'src>() -> Functions<'src> {
     funcs.insert(
         "Array.of".to_string(),
         FnDecl::Native(NativeFn {
-            args: vec![("args", TypeDecl::Any)],
-            ret_type: TypeDecl::Array, // TODO: Array<T>
+            args: vec![("...args", TypeDecl::Any)],
+            ret_type: TypeDecl::Array, // TODO: ...args: Array<T>
             code: Box::new(|_, args| Ok(Value::Array(args.into()))),
         }),
     );
     funcs.insert(
         "Array.spread%".to_string(),
         FnDecl::Native(NativeFn {
-            args: vec![("args", TypeDecl::Any)],
+            args: vec![
+                ("subarrays", TypeDecl::Array),
+                ("spreadings", TypeDecl::Array),
+            ], // TODO: subarrays: Array<Array<T>>, spreadings: Array<Array<T>>
             ret_type: TypeDecl::Array, // TODO: Array<T>
             code: Box::new(array_spread_fn),
         }),
@@ -259,7 +258,7 @@ pub(crate) fn standard_functions<'src>() -> Functions<'src> {
         "p".to_string(),
         FnDecl::Native(NativeFn {
             args: vec![("arg", TypeDecl::Any)],
-            ret_type: TypeDecl::Any,
+            ret_type: TypeDecl::Undefined,
             code: Box::new(p_fn),
         }),
     );
@@ -396,8 +395,8 @@ fn object_from_entries_fn(_: &dyn Any, args: &[Value]) -> Result<Value, Box<dyn 
 }
 
 fn p_fn(_: &dyn Any, values: &[Value]) -> Result<Value, Box<dyn Error>> {
-    println!("{:?}", values[0]);
-    Ok(Value::Int(0))
+    println!("{:?}", values.iter().next().or(Some(&Value::Undefined)));
+    Ok(Value::Undefined)
 }
 
 #[derive(Default)]
