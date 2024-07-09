@@ -406,6 +406,7 @@ impl Vm {
                         .expect("Export name must be a string")
                         .to_string();
                     let value = stack.pop().expect("Export needs a value");
+                    stack.push(Value::Undefined); // push a dummy to keep the stack balanced
 
                     match self.exports {
                         Value::Object(ref mut map) => {
@@ -414,7 +415,7 @@ impl Vm {
                         _ => {
                             panic!("vm.exports must be an object");
                         }
-                    }
+                    };
                 }
             }
             self.top_mut()?.ip += 1;
