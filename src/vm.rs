@@ -119,6 +119,10 @@ fn bin_op_lt(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
     }
 }
 
+fn stack_overflow(ip: usize, instruction: Instruction, stack: &Vec<Value>) -> ! {
+    panic!("[BUG] Stack overflow in `[{}] {:?}` where stack.len() is {} (see --disasm to to look into the instruction)", ip, instruction, stack.len());
+}
+
 impl Vm {
     pub fn new(
         bytecode: Rc<ByteCode>,
@@ -246,17 +250,24 @@ impl Vm {
                 }
                 OpCode::Store => {
                     let stack = &mut self.top_mut()?.stack;
-                    let idx = stack.len() - instruction.arg0 as usize - 1;
+                    let Some(d) = stack.len().checked_sub(instruction.arg0 as usize) else {
+                        stack_overflow(ip, instruction, stack);
+                    };
+                    let Some(idx) = d.checked_sub(1) else {
+                        stack_overflow(ip, instruction, stack);
+                    };
                     let value = stack.pop().expect("Store needs an argument");
                     stack[idx] = value;
                 }
                 OpCode::Copy => {
                     let stack = &mut self.top_mut()?.stack;
-                    let (r, b) = (stack.len() - instruction.arg0 as usize).overflowing_sub(1);
-                    if b {
-                        panic!("[BUG] Stack overflow in `[{}] {:?}` where stack.len() is {} (see --disasm to to look into the instruction)", ip, instruction, stack.len());
-                    }
-                    stack.push(stack[r].clone());
+                    let Some(d) = stack.len().checked_sub(instruction.arg0 as usize) else {
+                        stack_overflow(ip, instruction, stack);
+                    };
+                    let Some(idx) = d.checked_sub(1) else {
+                        stack_overflow(ip, instruction, stack);
+                    };
+                    stack.push(stack[idx].clone());
                 }
                 OpCode::Dup => {
                     let stack = &mut self.top_mut()?.stack;

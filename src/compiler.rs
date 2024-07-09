@@ -19,7 +19,7 @@ struct InstPtr(usize);
 enum Target {
     #[default]
     Temp,
-    Literal(usize),
+    Lit(usize),
     Local(String),
 }
 
@@ -91,15 +91,15 @@ impl Compiler {
 
     fn add_load_literal_inst(&mut self, lit: u8) -> InstPtr {
         let inst = self.add_inst(OpCode::LoadLit, lit);
-        self.target_stack.push(Target::Literal(lit as usize));
+        self.target_stack.push(Target::Lit(lit as usize));
         inst
     }
 
     fn add_store_inst(&mut self, stack_idx: StkIdx) -> InstPtr {
         if self.target_stack.len() < stack_idx.0 + 1 {
-            eprintln!("Compiled bytecode so far:");
+            eprintln!("Target stack underflow during compilation! Compiled bytecode so far:");
             disasm_common(&self.literals, &self.instructions, &mut std::io::stderr()).unwrap();
-            panic!("Target stack undeflow during compilation!");
+            panic!();
         }
         let inst = self.add_inst(
             OpCode::Store,
@@ -213,14 +213,14 @@ impl Compiler {
             ExprEnum::Lt(lhs, rhs) => self.bin_op(OpCode::Lt, lhs, rhs)?,
             ExprEnum::FnInvoke(name, args) => {
                 let stack_before_args = self.target_stack.len();
-                let name = self.add_literal(Value::Str(name.to_string()));
+                let name_id = self.add_literal(Value::Str(name.to_string()));
                 let args = args
                     .iter()
                     .map(|arg| self.compile_expr(arg))
                     .collect::<Result<Vec<_>, _>>()?;
 
                 let stack_before_call = self.target_stack.len();
-                self.add_load_literal_inst(name);
+                self.add_load_literal_inst(name_id);
                 for arg in &args {
                     self.add_copy_inst(*arg);
                 }
@@ -228,7 +228,38 @@ impl Compiler {
                 self.add_inst(OpCode::Call, args.len() as u8);
                 self.target_stack
                     .resize(stack_before_call + 1, Target::Temp);
+
+                // eprintln!(
+                //     "Coercing stack to {:?} for {:?}:\n    [{}]",
+                //     stack_before_args,
+                //     name.fragment(),
+                //     self.target_stack
+                //         .iter()
+                //         .map(|t| {
+                //             match t {
+                //                 Target::Temp => "Temp".to_string(),
+                //                 Target::Lit(i) => format!("Lit({:?})", self.literals[*i]),
+                //                 Target::Local(s) => format!("Local({})", s),
+                //             }
+                //         })
+                //         .collect::<Vec<_>>()
+                //         .join(", ")
+                // );
                 self.coerce_stack(StkIdx(stack_before_args));
+                // eprintln!(
+                //     " -> [{}]",
+                //     self.target_stack
+                //         .iter()
+                //         .map(|t| {
+                //             match t {
+                //                 Target::Temp => "Temp".to_string(),
+                //                 Target::Lit(i) => format!("Lit({:?})", self.literals[*i]),
+                //                 Target::Local(s) => format!("Local({})", s),
+                //             }
+                //         })
+                //         .collect::<Vec<_>>()
+                //         .join(", ")
+                // );
                 self.stack_top()
             }
             ExprEnum::If(cond, true_branch, false_branch) => {
@@ -276,13 +307,11 @@ impl Compiler {
         Ok(self.stack_top())
     }
 
-    /// Coerce the target stack size to be target + 1, and move the old top
-    /// to the new top.
     fn coerce_stack(&mut self, target: StkIdx) {
         if target.0 < self.target_stack.len() - 1 {
             self.add_store_inst(target);
             self.add_pop_until_inst(target);
-        } else if self.target_stack.len() - 1 < target.0 {
+        } else if target.0 > self.target_stack.len() - 1 {
             for _ in self.target_stack.len() - 1..target.0 {
                 self.add_copy_inst(self.stack_top());
             }
