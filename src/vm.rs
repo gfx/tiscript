@@ -296,7 +296,7 @@ impl Vm {
                         .bytecode
                         .funcs
                         .get(fname)
-                        .ok_or_else(|| format!("Function name shall be a string: {fname:?}"))?;
+                        .ok_or_else(|| format!("Function not found: {fname:?}"))?;
                     match fn_def {
                         FnDef::User(user_fn) => {
                             if user_fn.cofn {

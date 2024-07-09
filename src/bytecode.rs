@@ -357,7 +357,7 @@ fn array_spread_fn(_: &dyn Any, args: &[Value]) -> Result<Value, Box<dyn Error>>
         .must_be_array()?;
     let spreadings = args
         .next()
-        .expect("function missing the first argument")
+        .expect("function missing the second argument")
         .must_be_array()?;
 
     let mut i = 0;
