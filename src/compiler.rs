@@ -336,9 +336,10 @@ impl Compiler {
                         ex = self.stack_top();
                     }
                     self.target_stack[ex.0] = Target::Local(name.to_string());
+                    last_result = Some(ex);
                 }
                 Statement::VarAssign { name, ex, .. } => {
-                    let stk_ex = self.compile_expr(ex)?;
+                    let ex = self.compile_expr(ex)?;
                     let (stk_local, _) = self
                         .target_stack
                         .iter_mut()
@@ -351,8 +352,9 @@ impl Compiler {
                             }
                         })
                         .ok_or_else(|| format!("Variable name not found: {name}"))?;
-                    self.add_copy_inst(stk_ex);
+                    self.add_copy_inst(ex);
                     self.add_store_inst(StkIdx(stk_local));
+                    last_result = Some(ex);
                 }
                 Statement::FnDef {
                     name,
@@ -395,7 +397,7 @@ impl Compiler {
                 Statement::Export(stmts) => {
                     assert!(stmts.len() == 1);
 
-                    self.compile_stmts(stmts)?;
+                    self.compile_stmts(stmts)?.unwrap();
                     match stmts[0] {
                         Statement::VarDef { name, .. } => {
                             let name_id = self.add_literal(Value::Str(name.to_string()));
@@ -408,7 +410,6 @@ impl Compiler {
                             unreachable!();
                         }
                     }
-
                     self.add_inst(OpCode::Export, 0);
                 }
             }
