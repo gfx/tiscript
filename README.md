@@ -74,7 +74,7 @@ fn main() {
 
 ## Features
 
-This is a list of features that are planned or implemented:
+This is a list of features in ECMA-262 that are planned or implemented:
 
 * [x] shebang
 * [x] line and block comments
@@ -101,14 +101,14 @@ This is a list of features that are planned or implemented:
 * [ ] nullish coalescing operator (`??`)
 * [ ] null-conditional operator (`?.`)
 * [ ] object spread syntax
-* [ ] array spread syntax
+* [ ] [WIP] array spread syntax
 * [ ] `class` statement
 * [ ] `for-of` loop
 * [ ] exceptions (`Error`, `try-catch-finally`, `throw` and so on)
 * [ ] temporal module
 * [x] function call
 * [ ] method call
-* [ ] function declaration with `function` keyword
+* [ ] [WIP] function declaration with `function` keyword
 * [ ] arrow function
 * [ ] function as a first-class object
 * [ ] generator function (`function*`)
@@ -121,6 +121,10 @@ This is a list of features that are planned or implemented:
 * [ ] `String` instance methods
 * [ ] `Number` class methods
 * [ ] `Number` instance methods
+* [ ] optional semicolons (ASI)
+
+This is a list of features in TypeScript that are planned or implemented:
+
 * [x] primitive type annotations
 * [ ] literal type annotations
 * [ ] union type annotations
@@ -130,6 +134,7 @@ This is a list of features that are planned or implemented:
 * [ ] object type annotations
 * [ ] `interface` statement
 * [ ] `type` statement
+* [ ] generics
 * [ ] null-assertion operator (trailing `!`)
 
 This is a list of features that won't be implemented:
@@ -145,6 +150,9 @@ This is a list of features that won't be implemented:
 * `async` and `await`
 * `symbol`
 * true bigint
+* `enum`
+* `const enum`
+* `namespace`
 * unlimited recursion
 * anything that meets Turing completeness
 
