@@ -397,7 +397,7 @@ impl Compiler {
                 Statement::Export(stmts) => {
                     assert!(stmts.len() == 1);
 
-                    self.compile_stmts(stmts)?.unwrap();
+                    self.compile_stmts(stmts)?;
                     match stmts[0] {
                         Statement::VarDef { name, .. } => {
                             let name_id = self.add_literal(Value::Str(name.to_string()));
