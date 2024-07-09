@@ -125,6 +125,10 @@ This is a list of features in ECMA-262 that are planned or implemented:
 
 This is a list of features in TypeScript that are planned or implemented:
 
+* [ ] `any`
+* [ ] `unknown`
+* [ ] `never`
+* [ ] `as` type assertion
 * [x] primitive type annotations
 * [ ] literal type annotations
 * [ ] union type annotations
@@ -132,6 +136,7 @@ This is a list of features in TypeScript that are planned or implemented:
 * [ ] tuple type annotations
 * [ ] array type annotations
 * [ ] object type annotations
+* [ ] type guards
 * [ ] `interface` statement
 * [ ] `type` statement
 * [ ] generics
