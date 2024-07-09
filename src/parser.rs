@@ -408,19 +408,27 @@ fn array_literal(input: Span) -> IResult<Span, Expression> {
     }
 }
 
+fn object_entry(input: Span) -> IResult<Span, Expression> {
+    let (r, (k, v)) = pair(
+        alt((ident, dq_str_literal, sq_str_literal)),
+        preceded(
+            multispace0,
+            preceded(char(':'), preceded(multispace0, expr)),
+        ),
+    )(input)?;
+    Ok((
+        r,
+        Expression::new(ExprEnum::Entry(Box::new(k), Box::new(v)), input),
+    ))
+}
+
 fn object_literal(input: Span) -> IResult<Span, Expression> {
     // { identifier: expr, "string": expr, ... }
-    let (r, pairs) = space_delimited(delimited(
+    let (r, entries) = space_delimited(delimited(
         char('{'),
         many0(delimited(
             multispace0,
-            pair(
-                alt((ident, dq_str_literal, sq_str_literal)),
-                preceded(
-                    multispace0,
-                    preceded(char(':'), preceded(multispace0, expr)),
-                ),
-            ),
+            object_entry,
             space_delimited(opt(char(','))),
         )),
         char('}'),
@@ -428,10 +436,18 @@ fn object_literal(input: Span) -> IResult<Span, Expression> {
     let array_of = Span::new("Array.of");
 
     // make Vec<(Expression, Expression)> to Vec<Expression> where each element is Array.of(k, v) in the latter.
-    let list = pairs
+    let list = entries
         .into_iter()
-        .map(|(k, v)| {
-            let k = match k {
+        .map(|entry| {
+            let Expression {
+                expr: ExprEnum::Entry(k, v),
+                ..
+            } = entry
+            else {
+                unreachable!("object_entry should return an Entry")
+            };
+
+            let k = match *k {
                 Expression {
                     expr: ExprEnum::Ident(s),
                     span: _,
@@ -442,11 +458,11 @@ fn object_literal(input: Span) -> IResult<Span, Expression> {
                 Expression {
                     expr: ExprEnum::StrLiteral(_),
                     span: _,
-                } => k,
+                } => *k,
                 _ => unreachable!(),
             };
             let span = k.span;
-            invoke_fn(array_of, vec![k, v], span)
+            invoke_fn(array_of, vec![k, *v], span)
         })
         .collect();
 

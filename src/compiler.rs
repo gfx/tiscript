@@ -287,6 +287,7 @@ impl Compiler {
                 self.stack_top()
             }
             ExprEnum::Spread(_) => unreachable!("Spread operator should be handled in parser"),
+            ExprEnum::Entry(_, _) => unreachable!("Entry should be handled in parser"),
         })
     }
 

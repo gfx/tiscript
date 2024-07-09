@@ -266,6 +266,7 @@ fn tc_expr<'src>(
             TypeDecl::Any
         }
         Spread(_ex) => unreachable!("Spread operator should be handled in parser"),
+        Entry(_key, _val) => unreachable!("Entry should be handled in parser"),
     })
 }
 
