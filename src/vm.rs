@@ -119,11 +119,17 @@ fn bin_op_lt(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
     }
 }
 
+#[cold]
 fn stack_overflow(ip: usize, instruction: Instruction, stack: &Vec<Value>) -> ! {
     panic!(
         "[BUG] Stack overflow in `[{}] {:?}` where stack.len() is {} (see --disasm to to look into the instruction)",
         ip, instruction, stack.len()
     );
+}
+
+#[cold]
+fn log_instruction(ip: usize, instruction: Instruction, stack: &Vec<Value>) {
+    eprintln!("interpret[{ip}]: {instruction:?} stack: {stack:?}",);
 }
 
 impl Vm {
@@ -237,10 +243,7 @@ impl Vm {
             };
 
             if self.debug_output {
-                eprintln!(
-                    "interpret[{ip}]: {instruction:?} stack: {stack:?}",
-                    stack = self.top()?.stack
-                );
+                log_instruction(ip, instruction, &self.top()?.stack);
             }
 
             match instruction.op {
