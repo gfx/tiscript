@@ -23,6 +23,8 @@ enum Target {
     Local(String),
 }
 
+
+#[derive(Default)]
 pub struct Compiler {
     literals: Vec<Value>,
     instructions: Vec<Instruction>,
@@ -32,12 +34,7 @@ pub struct Compiler {
 
 impl Compiler {
     pub fn new() -> Self {
-        Self {
-            literals: vec![],
-            instructions: vec![],
-            target_stack: vec![],
-            funcs: Default::default(),
-        }
+        Self::default()
     }
 
     pub fn into_bytecode(self) -> ByteCode {
@@ -94,7 +91,7 @@ impl Compiler {
     }
 
     fn add_load_literal_inst(&mut self, lit: u8) -> InstPtr {
-        let inst = self.add_inst(OpCode::LoadLiteral, lit);
+        let inst = self.add_inst(OpCode::LoadLit, lit);
         self.target_stack.push(Target::Literal(lit as usize));
         inst
     }
@@ -247,7 +244,7 @@ impl Compiler {
                 self.fixup_jmp(jf_inst);
                 self.target_stack.resize(stack_size_before, Target::Temp);
                 if let Some(false_branch) = false_branch.as_ref() {
-                    self.compile_stmts_or_nop(&false_branch)?;
+                    self.compile_stmts_or_nop(false_branch)?;
                 }
                 self.coerce_stack(StkIdx(stack_size_before + 1));
                 self.fixup_jmp(jmp_inst);
@@ -259,7 +256,7 @@ impl Compiler {
                 self.add_inst(OpCode::Await, 0);
                 self.stack_top()
             }
-            ExprEnum::Spread(_) => unreachable!("Spread operator should be handled in parser")
+            ExprEnum::Spread(_) => unreachable!("Spread operator should be handled in parser"),
         })
     }
 
@@ -280,7 +277,7 @@ impl Compiler {
         Ok(self.stack_top())
     }
 
-    /// Coerce the stack size to be target + 1, and move the old top
+    /// Coerce the target stack size to be target + 1, and move the old top
     /// to the new top.
     fn coerce_stack(&mut self, target: StkIdx) {
         if target.0 < self.target_stack.len() - 1 {
@@ -443,7 +440,7 @@ fn disasm_common(
     writeln!(writer, "  Instructions [{}]", instructions.len())?;
     for (i, inst) in instructions.iter().enumerate() {
         match inst.op {
-            LoadLiteral => writeln!(
+            LoadLit => writeln!(
                 writer,
                 "    [{i}] {:?} {} ({:?})",
                 inst.op, inst.arg0, literals[inst.arg0 as usize]

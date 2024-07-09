@@ -23,9 +23,8 @@ struct Params {
 }
 
 fn show_help(cmd: &str, exit_code: i32) {
-    print!(
-        r#"Usage: {cmd} [--check] [--show-ast] [--disasm] [--compact|--pretty] [--debug] [--eval <source>] [source.ts]
-"#
+    println!(
+        r#"Usage: {cmd} [--check] [--show-ast] [--disasm] [--compact|--pretty] [--debug] [--eval <source>] [source.ts]"#
     );
     exit(exit_code);
 }

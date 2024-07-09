@@ -50,7 +50,7 @@ fn disasm_common(
     writeln!(writer, "  Instructions [{}]", instructions.len())?;
     for (i, inst) in instructions.iter().enumerate() {
         match inst.op {
-            LoadLiteral => writeln!(
+            LoadLit => writeln!(
                 writer,
                 "    [{i}] {:?} {} ({:?})",
                 inst.op, inst.arg0, literals[inst.arg0 as usize]
@@ -110,17 +110,19 @@ impl<'src> UserFn<'src> {
     }
 }
 
+pub type NativeFnCode = Box<dyn Fn(&dyn Any, &[Value]) -> Result<Value, Box<dyn Error>>>;
+
 pub struct NativeFn<'src> {
     args: Vec<(&'src str, TypeDecl)>,
     ret_type: TypeDecl,
-    pub(crate) code: Box<dyn Fn(&dyn Any, &[Value]) -> Result<Value, Box<dyn Error>>>,
+    pub(crate) code: NativeFnCode,
 }
 
 impl<'src> NativeFn<'src> {
     pub fn new(
         args: Vec<(&'src str, TypeDecl)>,
         ret_type: TypeDecl,
-        code: Box<dyn Fn(&dyn Any, &[Value]) -> Result<Value, Box<dyn Error>>>,
+        code: NativeFnCode,
     ) -> Self {
         Self {
             args,
@@ -141,7 +143,7 @@ pub(crate) fn standard_functions<'src>() -> Functions<'src> {
     let mut funcs = Functions::new();
 
     funcs.insert(
-        "Array.from".to_string(),
+        "Array.of".to_string(),
         FnDecl::Native(NativeFn {
             args: vec![("args", TypeDecl::Any)],
             ret_type: TypeDecl::Array, // TODO: Array<T>
@@ -214,7 +216,7 @@ pub(crate) fn standard_functions<'src>() -> Functions<'src> {
             ret_type: TypeDecl::Num,
             code: Box::new(move |_, args| {
                 let max = args
-                    .into_iter()
+                    .iter()
                     .map(|arg| arg.coerce_num().unwrap())
                     .fold(f64::NEG_INFINITY, f64::max);
                 Ok(Value::Num(max))
@@ -228,7 +230,7 @@ pub(crate) fn standard_functions<'src>() -> Functions<'src> {
             ret_type: TypeDecl::Num,
             code: Box::new(move |_, args| {
                 let min = args
-                    .into_iter()
+                    .iter()
                     .map(|arg| arg.coerce_num().unwrap())
                     .fold(f64::INFINITY, f64::min);
                 Ok(Value::Num(min))
@@ -316,7 +318,7 @@ fn unary_fn<'a>(f: fn(f64) -> f64) -> FnDecl<'a> {
         ret_type: TypeDecl::Num,
         code: Box::new(move |_, args| {
             Ok(Value::Num(f(args
-                .into_iter()
+                .iter()
                 .next()
                 .expect("function missing argument")
                 .coerce_num()?)))
@@ -329,7 +331,7 @@ fn binary_fn<'a>(f: fn(f64, f64) -> f64) -> FnDecl<'a> {
         args: vec![("lhs", TypeDecl::Num), ("rhs", TypeDecl::Num)],
         ret_type: TypeDecl::Num,
         code: Box::new(move |_, args| {
-            let mut args = args.into_iter();
+            let mut args = args.iter();
             let lhs = args
                 .next()
                 .expect("function missing the first argument")
@@ -349,7 +351,7 @@ fn binary_fn<'a>(f: fn(f64, f64) -> f64) -> FnDecl<'a> {
 fn array_spread_fn(_: &dyn Any, args: &[Value]) -> Result<Value, Box<dyn Error>> {
     let mut result: Vec<Value> = Vec::new();
 
-    let mut args = args.into_iter();
+    let mut args = args.iter();
     let subarrays = args
         .next()
         .expect("function missing the first argument")
@@ -398,15 +400,14 @@ fn p_fn(_: &dyn Any, values: &[Value]) -> Result<Value, Box<dyn Error>> {
     Ok(Value::Int(0))
 }
 
+#[derive(Default)]
 pub struct ByteCode {
     pub(crate) funcs: HashMap<String, FnDef>,
 }
 
 impl ByteCode {
     pub fn new() -> Self {
-        Self {
-            funcs: HashMap::new(),
-        }
+        Self::default()
     }
 
     pub fn add_fn(&mut self, name: String, native_fn: NativeFn<'static>) {

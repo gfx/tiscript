@@ -14,13 +14,19 @@ pub struct TypeCheckContext<'src, 'ctx> {
     super_context: Option<&'ctx TypeCheckContext<'src, 'ctx>>,
 }
 
-impl<'src, 'ctx> TypeCheckContext<'src, 'ctx> {
-    pub fn new() -> Self {
+impl Default for TypeCheckContext<'_, '_>{
+    fn default() -> Self {
         Self {
             vars: HashMap::new(),
             funcs: standard_functions(),
             super_context: None,
         }
+    }
+}
+
+impl<'src, 'ctx> TypeCheckContext<'src, 'ctx> {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn add_fn(&mut self, name: String, fn_decl: NativeFn<'src>) {
@@ -28,11 +34,7 @@ impl<'src, 'ctx> TypeCheckContext<'src, 'ctx> {
     }
 
     fn get_var(&self, name: &str) -> Option<TypeDecl> {
-        if let Some(val) = self.vars.get(name) {
-            Some(val.clone())
-        } else {
-            None
-        }
+        self.vars.get(name).copied()
     }
 
     fn get_fn(&self, name: &str) -> Option<&FnDecl<'src>> {
@@ -88,8 +90,8 @@ fn tc_coerce_type<'src>(
 ) -> Result<TypeDecl, TypeCheckError<'src>> {
     use TypeDecl::*;
     Ok(match (value, target) {
-        (_, Any) => value.clone(),
-        (Any, _) => target.clone(),
+        (_, Any) => *value,
+        (Any, _) => *target,
         (Undefined, Undefined) => Undefined,
         (Null, Null) => Null,
         (Bool, Bool) => Bool,
@@ -116,7 +118,7 @@ fn tc_add_op<'src>(
     match (&lhst, &rhst) {
         (TypeDecl::Str, _) => Ok(TypeDecl::Str),
         (_, TypeDecl::Str) => Ok(TypeDecl::Str),
-        _ => tc_binary_op(&lhs, &rhs, ctx, "+"),
+        _ => tc_binary_op(lhs, rhs, ctx, "+"),
     }
 }
 
@@ -207,7 +209,7 @@ fn tc_expr<'src>(
             })?;
             let args_decl = func.args();
             for ((arg_ty, arg_span), decl) in args_ty.iter().zip(args_decl.iter()) {
-                tc_coerce_type(&arg_ty, &decl.1, *arg_span)?;
+                tc_coerce_type(arg_ty, &decl.1, *arg_span)?;
             }
             func.ret_type()
         }
@@ -215,14 +217,14 @@ fn tc_expr<'src>(
             TypeDecl::Bool
         }
         Minus(ex) => {
-            if let Err(_) = tc_coerce_type(&tc_expr(ex, ctx)?, &TypeDecl::Int, ex.span) {
+            if tc_coerce_type(&tc_expr(ex, ctx)?, &TypeDecl::Int, ex.span).is_err() {
                 tc_coerce_type(&tc_expr(ex, ctx)?, &TypeDecl::Num, ex.span)?;
             }
             TypeDecl::Num
         }
         Plus(ex) => {
             let td = tc_expr(ex, ctx)?;
-            if let Err(_) = tc_coerce_type(&td, &TypeDecl::Num, ex.span) {
+            if tc_coerce_type(&td, &TypeDecl::Num, ex.span).is_err() {
                 return Err(TypeCheckError::new(
                     format!("Operator '+' cannot be applied to type '{td}'."),
                     ex.span,
@@ -230,13 +232,13 @@ fn tc_expr<'src>(
             }
             TypeDecl::Num
         }
-        Add(lhs, rhs) => tc_add_op(&lhs, &rhs, ctx)?,
-        Sub(lhs, rhs) => tc_binary_op(&lhs, &rhs, ctx, "-")?,
-        Mul(lhs, rhs) => tc_binary_op(&lhs, &rhs, ctx, "*")?,
-        Mod(lhs, rhs) => tc_binary_op(&lhs, &rhs, ctx, "%")?,
-        Div(lhs, rhs) => tc_binary_op(&lhs, &rhs, ctx, "/")?,
-        Lt(lhs, rhs) => tc_binary_cmp(&lhs, &rhs, ctx, "<")?,
-        Gt(lhs, rhs) => tc_binary_cmp(&lhs, &rhs, ctx, ">")?,
+        Add(lhs, rhs) => tc_add_op(lhs, rhs, ctx)?,
+        Sub(lhs, rhs) => tc_binary_op(lhs, rhs, ctx, "-")?,
+        Mul(lhs, rhs) => tc_binary_op(lhs, rhs, ctx, "*")?,
+        Mod(lhs, rhs) => tc_binary_op(lhs, rhs, ctx, "%")?,
+        Div(lhs, rhs) => tc_binary_op(lhs, rhs, ctx, "/")?,
+        Lt(lhs, rhs) => tc_binary_cmp(lhs, rhs, ctx, "<")?,
+        Gt(lhs, rhs) => tc_binary_cmp(lhs, rhs, ctx, ">")?,
         If(cond, true_branch, false_branch) => {
             tc_coerce_type(&tc_expr(cond, ctx)?, &TypeDecl::Int, cond.span)?;
             let true_type = type_check(true_branch, ctx)?;
@@ -303,10 +305,10 @@ pub fn type_check<'src>(
                     subctx.vars.insert(arg, *ty);
                 }
                 let last_stmt = type_check(stmts, &mut subctx)?;
-                tc_coerce_type(&last_stmt, &ret_type, stmts.span())?;
+                tc_coerce_type(&last_stmt, ret_type, stmts.span())?;
             }
             Statement::Expression(e) => {
-                res = tc_expr(&e, ctx)?;
+                res = tc_expr(e, ctx)?;
             }
             Statement::Return(e) => {
                 return tc_expr(e, ctx);

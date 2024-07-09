@@ -2,7 +2,8 @@
 #[repr(u8)]
 pub enum OpCode {
   Nop,
-  LoadLiteral,
+  // Load a literal from the literal table.
+  LoadLit,
   Store,
   // Push the value of the index arg0 in the stack to the top of the stack.
   Copy,
@@ -33,9 +34,15 @@ pub enum OpCode {
   Export,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 #[repr(C)]
 pub struct Instruction {
   pub(crate) op: OpCode,
   pub(crate) arg0: u8,
+}
+
+impl std::fmt::Debug for Instruction {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "({:?} {})", self.op, self.arg0)
+  }
 }

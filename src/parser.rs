@@ -95,7 +95,7 @@ fn unary_op(i: Span) -> IResult<Span, Expression> {
             },
         ));
     } else {
-        return Ok((r, ex));
+        Ok((r, ex))
     }
 }
 
@@ -159,7 +159,7 @@ enum StrFragment<'a> {
     EscapedChar(char),
 }
 
-fn parse_unicode<'a>(input: Span<'a>) -> IResult<Span<'a>, char> {
+fn parse_unicode(input: Span<'_>) -> IResult<Span<'_>, char> {
     let parse_hex = take_while_m_n(1, 6, |c: char| c.is_ascii_hexdigit());
 
     let parse_delimited_hex = preceded(char('u'), delimited(char('{'), parse_hex, char('}')));
@@ -168,10 +168,10 @@ fn parse_unicode<'a>(input: Span<'a>) -> IResult<Span<'a>, char> {
         u32::from_str_radix(hex.fragment(), 16)
     });
 
-    map_opt(parse_u32, |value| std::char::from_u32(value))(input)
+    map_opt(parse_u32, std::char::from_u32)(input)
 }
 
-fn parse_escaped_char<'a>(input: Span<'a>) -> IResult<Span<'a>, char> {
+fn parse_escaped_char(input: Span<'_>) -> IResult<Span<'_>, char> {
     preceded(
         char('\\'),
         alt((
@@ -187,12 +187,12 @@ fn parse_escaped_char<'a>(input: Span<'a>) -> IResult<Span<'a>, char> {
     )(input)
 }
 
-fn parse_dq_literal<'a>(input: Span<'a>) -> IResult<Span, Span> {
+fn parse_dq_literal(input: Span<'_>) -> IResult<Span, Span> {
     let not_quote_slash = is_not("\"\\");
     verify(not_quote_slash, |s: &Span| !s.is_empty())(input)
 }
 
-fn parse_dq_fragment<'a>(input: Span<'a>) -> IResult<Span<'a>, StrFragment<'a>> {
+fn parse_dq_fragment(input: Span<'_>) -> IResult<Span<'_>, StrFragment<'_>> {
     alt((
         // The `map` combinator runs a parser, then applies a function to the output
         // of that parser.
@@ -201,24 +201,24 @@ fn parse_dq_fragment<'a>(input: Span<'a>) -> IResult<Span<'a>, StrFragment<'a>> 
     ))(input)
 }
 
-fn parse_sq_literal<'a>(input: Span<'a>) -> IResult<Span, Span> {
+fn parse_sq_literal(input: Span<'_>) -> IResult<Span, Span> {
     let not_quote_slash = is_not("\'\\");
     verify(not_quote_slash, |s: &Span| !s.is_empty())(input)
 }
 
-fn parse_sq_fragment<'a>(input: Span<'a>) -> IResult<Span<'a>, StrFragment<'a>> {
+fn parse_sq_fragment(input: Span<'_>) -> IResult<Span<'_>, StrFragment<'_>> {
     alt((
         map(parse_sq_literal, StrFragment::Literal),
         map(parse_escaped_char, StrFragment::EscapedChar),
     ))(input)
 }
 
-fn parse_tmpl_literal<'a>(input: Span<'a>) -> IResult<Span, Span> {
+fn parse_tmpl_literal(input: Span<'_>) -> IResult<Span, Span> {
     let not_quote_slash = is_not("`\\");
     verify(not_quote_slash, |s: &Span| !s.is_empty())(input)
 }
 
-fn parse_tmpl_fragment<'a>(input: Span<'a>) -> IResult<Span<'a>, StrFragment<'a>> {
+fn parse_tmpl_fragment(input: Span<'_>) -> IResult<Span<'_>, StrFragment<'_>> {
     alt((
         map(parse_tmpl_literal, StrFragment::Literal),
         map(parse_escaped_char, StrFragment::EscapedChar),
@@ -295,7 +295,7 @@ fn num_literal(input: Span) -> IResult<Span, Expression> {
     Ok((
         r,
         Expression::new(
-            ExprEnum::NumLiteral(v.replace("_", "").parse().map_err(|_| {
+            ExprEnum::NumLiteral(v.replace('_', "").parse().map_err(|_| {
                 nom::Err::Error(nom::error::Error {
                     input,
                     code: nom::error::ErrorKind::Digit,
@@ -314,7 +314,7 @@ fn bigint_literal(input: Span) -> IResult<Span, Expression> {
         many0(alt((digit1, tag("_")))),
         char('n'),
     ))))(input)?;
-    let digits = v.fragment().trim_end_matches('n').replace("_", "");
+    let digits = v.fragment().trim_end_matches('n').replace('_', "");
     Ok((
         r,
         Expression::new(
@@ -366,13 +366,10 @@ fn array_literal(input: Span) -> IResult<Span, Expression> {
         char(']'),
     ))(input)?;
 
-    let array_from = Span::new("Array.from");
+    let array_of = Span::new("Array.of");
 
-    // if a spread expr exists, transform it into Array.spread%(), otherwise Array.from().
-    if list.iter().any(|ex| match ex.expr {
-        ExprEnum::Spread(_) => true,
-        _ => false,
-    }) {
+    // if a spread expr exists, transform it into Array.spread%(), otherwise Array.of().
+    if list.iter().any(|ex| matches!(ex.expr, ExprEnum::Spread(_))) {
         // e.g. [1, 2, ...expr1, 3, 4, ...expr2]
         let mut subarrays: Vec<Expression> = Vec::new(); // e.g. [[1, 2], [3, 4]]
         let mut spreadings: Vec<Expression> = Vec::new(); // e.g. [expr1, expr2]
@@ -381,18 +378,18 @@ fn array_literal(input: Span) -> IResult<Span, Expression> {
         for ex in list {
             match ex.expr {
                 ExprEnum::Spread(ex) => {
-                    subarrays.push(invoke_fn(array_from, temp, ex.span.clone()));
+                    subarrays.push(invoke_fn(array_of, temp, ex.span));
                     spreadings.push(*ex);
                     temp = Vec::new();
-            }
+                }
                 _ => {
                     temp.push(ex);
                 }
             }
         }
         if !temp.is_empty() {
-            let span = temp[0].span.clone();
-            subarrays.push(invoke_fn(array_from, temp, span));
+            let span = temp[0].span;
+            subarrays.push(invoke_fn(array_of, temp, span));
         }
 
         Ok((
@@ -400,14 +397,14 @@ fn array_literal(input: Span) -> IResult<Span, Expression> {
             invoke_fn(
                 Span::new("Array.spread%"),
                 vec![
-                    invoke_fn(array_from, subarrays, input),
-                    invoke_fn(array_from, spreadings, input),
+                    invoke_fn(array_of, subarrays, input),
+                    invoke_fn(array_of, spreadings, input),
                 ],
                 input,
             ),
         ))
     } else {
-        Ok((r, invoke_fn(array_from, list, input)))
+        Ok((r, invoke_fn(array_of, list, input)))
     }
 }
 
@@ -428,9 +425,9 @@ fn object_literal(input: Span) -> IResult<Span, Expression> {
         )),
         char('}'),
     ))(input)?;
-    let array_from = Span::new("Array.from");
+    let array_of = Span::new("Array.of");
 
-    // make Vec<(Expression, Expression)> to Vec<Expression> where each element is Array.from(k, v) in the latter.
+    // make Vec<(Expression, Expression)> to Vec<Expression> where each element is Array.of(k, v) in the latter.
     let list = pairs
         .into_iter()
         .map(|(k, v)| {
@@ -448,8 +445,8 @@ fn object_literal(input: Span) -> IResult<Span, Expression> {
                 } => k,
                 _ => unreachable!(),
             };
-            let span = k.span.clone();
-            Expression::new(ExprEnum::FnInvoke(array_from, vec![k, v]), span)
+            let span = k.span;
+            invoke_fn(array_of, vec![k, v], span)
         })
         .collect();
 

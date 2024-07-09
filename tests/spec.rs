@@ -125,10 +125,10 @@ fn test_evaluate_specs_that_should_fail() {
 
         // extract the message body (just after the first whitespace)
         let tsc_full_message = titys2json.unwrap_err().to_string();
-        let (_, tsc_message) = tsc_full_message.split_at(tsc_full_message.find(" ").unwrap() + 1);
+        let (_, tsc_message) = tsc_full_message.split_at(tsc_full_message.find(' ').unwrap() + 1);
 
         let titys_full_message = err.to_string();
-        let (_, err) = titys_full_message.split_at(titys_full_message.find(" ").unwrap() + 1);
+        let (_, err) = titys_full_message.split_at(titys_full_message.find(' ').unwrap() + 1);
 
         assert_eq!(
             err.trim(),

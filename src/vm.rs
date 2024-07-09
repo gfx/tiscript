@@ -195,11 +195,11 @@ impl Vm {
         let top_frame = self
             .stack_frames
             .pop()
-            .ok_or_else(|| "Stack frame underflow at Ret")?;
+            .ok_or("Stack frame underflow at Ret")?;
         let res = top_frame
             .stack
             .get(top_frame.stack.len() - stack_pos as usize - 1)
-            .ok_or_else(|| "Stack underflow at Ret")?
+            .ok_or("Stack underflow at Ret")?
             .clone();
         let args = top_frame.args;
 
@@ -238,7 +238,7 @@ impl Vm {
 
             match instruction.op {
                 OpCode::Nop => (),
-                OpCode::LoadLiteral => {
+                OpCode::LoadLit => {
                     let stack_frame = self.top_mut()?;
                     stack_frame
                         .stack
@@ -252,7 +252,11 @@ impl Vm {
                 }
                 OpCode::Copy => {
                     let stack = &mut self.top_mut()?.stack;
-                    stack.push(stack[stack.len() - instruction.arg0 as usize - 1].clone());
+                    let (r, b) = (stack.len() - instruction.arg0 as usize).overflowing_sub(1);
+                    if b {
+                        panic!("[BUG] Stack overflow in `[{}] Copy {}` where stack.len() is {} (see --disasm to to look into the instruction)", ip, instruction.arg0, stack.len());
+                    }
+                    stack.push(stack[r].clone());
                 }
                 OpCode::Dup => {
                     let stack = &mut self.top_mut()?.stack;
