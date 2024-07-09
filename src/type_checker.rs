@@ -98,6 +98,8 @@ fn tc_coerce_type<'src>(
         (Num , Num) => Num,
         (Int, Int) => Int,
         (Str, Str) => Str,
+        (Array, Array) => Array,
+        (Object, Object) => Object,
         (Coro, Coro) => Coro,
         _ => {
             return Err(TypeCheckError::new(
