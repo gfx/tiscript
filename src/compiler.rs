@@ -308,13 +308,17 @@ impl Compiler {
     }
 
     fn coerce_stack(&mut self, target: StkIdx) {
-        if target.0 < self.target_stack.len() - 1 {
-            self.add_store_inst(target);
-            self.add_pop_until_inst(target);
-        } else if target.0 > self.target_stack.len() - 1 {
-            for _ in self.target_stack.len() - 1..target.0 {
-                self.add_copy_inst(self.stack_top());
+        match target.0.cmp(&(self.target_stack.len() - 1)) {
+            std::cmp::Ordering::Less => {
+                self.add_store_inst(target);
+                self.add_pop_until_inst(target);
             }
+            std::cmp::Ordering::Greater => {
+                for _ in self.target_stack.len() - 1..target.0 {
+                    self.add_copy_inst(self.stack_top());
+                }
+            }
+            std::cmp::Ordering::Equal => {}
         }
     }
 
