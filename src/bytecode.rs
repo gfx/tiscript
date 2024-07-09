@@ -165,6 +165,14 @@ pub(crate) fn standard_functions<'src>() -> Functions<'src> {
             code: Box::new(object_from_entries_fn),
         }),
     );
+    funcs.insert(
+        "Object.assign".to_string(),
+        FnDecl::Native(NativeFn {
+            args: vec![("...args", TypeDecl::Object)],
+            ret_type: TypeDecl::Object,
+            code: Box::new(object_assign_fn),
+        }),
+    );
     // cf. https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math
     funcs.insert("Math.abs".to_string(), unary_fn(f64::abs));
     funcs.insert("Math.acos".to_string(), unary_fn(f64::acos));
@@ -380,8 +388,13 @@ fn array_spread_fn(_: &dyn Any, args: &[Value]) -> Result<Value, Box<dyn Error>>
 }
 
 fn object_from_entries_fn(_: &dyn Any, args: &[Value]) -> Result<Value, Box<dyn Error>> {
-    let mut object = IndexMap::with_capacity(args.len());
-    for arg in args {
+    let entries = args
+        .iter()
+        .next()
+        .expect("undefined is not iterable")
+        .must_be_array()?;
+    let mut object = IndexMap::with_capacity(entries.len());
+    for arg in entries {
         match arg {
             Value::Array(pair) => {
                 let key = pair[0].clone();
@@ -392,6 +405,22 @@ fn object_from_entries_fn(_: &dyn Any, args: &[Value]) -> Result<Value, Box<dyn 
         }
     }
     Ok(Value::Object(object))
+}
+
+fn object_assign_fn(_: &dyn Any, args: &[Value]) -> Result<Value, Box<dyn Error>> {
+    let mut args = args.iter();
+    let mut object = args
+        .next()
+        .expect("Cannot convert undefined or null to object")
+        .must_be_object()?
+        .clone();
+    for arg in args {
+        let arg = arg.must_be_object()?;
+        for (key, value) in arg.iter() {
+            object.insert(key.clone(), value.clone());
+        }
+    }
+    Ok(Value::Object(object.clone()))
 }
 
 fn p_fn(_: &dyn Any, values: &[Value]) -> Result<Value, Box<dyn Error>> {

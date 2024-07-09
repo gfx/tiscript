@@ -423,50 +423,107 @@ fn object_entry(input: Span) -> IResult<Span, Expression> {
 }
 
 fn object_literal(input: Span) -> IResult<Span, Expression> {
-    // { identifier: expr, "string": expr, ... }
+    // { identifier: expr, "string": expr, ...spread }
     let (r, entries) = space_delimited(delimited(
         char('{'),
         many0(delimited(
             multispace0,
-            object_entry,
+            alt((object_entry, spread_expr)),
             space_delimited(opt(char(','))),
         )),
         char('}'),
     ))(input)?;
     let array_of = Span::new("Array.of");
+    let object_from_entries = Span::new("Object.fromEntries");
 
-    // make Vec<(Expression, Expression)> to Vec<Expression> where each element is Array.of(k, v) in the latter.
-    let list = entries
-        .into_iter()
-        .map(|entry| {
-            let Expression {
-                expr: ExprEnum::Entry(k, v),
-                ..
-            } = entry
-            else {
-                unreachable!("object_entry should return an Entry")
-            };
+    if entries
+        .iter()
+        .any(|ex| matches!(ex.expr, ExprEnum::Spread(_)))
+    {
+        // transform object spreads into use of Object.assign()
+        // e.g. { a: b, ...c, d: e, ...f } -> Object.assign(Object.fromEntries([[a, b]], c, Object.fromEntries([[ d: e ]]), f)
+        let mut args = Vec::new();
+        let mut temp = Vec::new(); // each arg for Object.fromEntries()
 
-            let k = match *k {
-                Expression {
-                    expr: ExprEnum::Ident(s),
-                    span: _,
-                } => Expression {
-                    expr: ExprEnum::StrLiteral(s.to_string()),
-                    span: k.span,
-                },
-                Expression {
-                    expr: ExprEnum::StrLiteral(_),
-                    span: _,
-                } => *k,
+        for ex in entries {
+            match ex.expr {
+                ExprEnum::Spread(ex) => {
+                    if !temp.is_empty() {
+                        let entries = invoke_fn(array_of, temp, ex.span);
+                        args.push(invoke_fn(object_from_entries, vec![entries], ex.span));
+                        temp = Vec::new();
+                    }
+                    args.push(*ex);
+                }
+                ExprEnum::Entry(k, v) => {
+                    let k = match *k {
+                        Expression {
+                            expr: ExprEnum::Ident(s),
+                            ..
+                        } => Expression {
+                            expr: ExprEnum::StrLiteral(s.to_string()),
+                            span: k.span,
+                        },
+                        Expression {
+                            expr: ExprEnum::StrLiteral(_),
+                            ..
+                        } => *k,
+                        _ => unreachable!(),
+                    };
+
+                    temp.push(invoke_fn(array_of, vec![k, *v], ex.span));
+                }
                 _ => unreachable!(),
-            };
-            let span = k.span;
-            invoke_fn(array_of, vec![k, *v], span)
-        })
-        .collect();
+            }
+        }
+        if !temp.is_empty() {
+            let entries = invoke_fn(array_of, temp, input);
+            args.push(invoke_fn(object_from_entries, vec![entries], input));
+}
 
-    Ok((r, invoke_fn(Span::new("Object.fromEntries"), list, input)))
+        Ok((r, invoke_fn(Span::new("Object.assign"), args, input)))
+    } else {
+        // transform object literal into use of Object.fromEntries()
+        let entries = entries
+            .into_iter()
+            .map(|entry| match entry {
+                Expression {
+                    expr: ExprEnum::Entry(k, v),
+                    ..
+                } => {
+                    let k = match *k {
+                        Expression {
+                            expr: ExprEnum::Ident(s),
+                            span: _,
+                        } => Expression {
+                            expr: ExprEnum::StrLiteral(s.to_string()),
+                            span: k.span,
+                        },
+                        Expression {
+                            expr: ExprEnum::StrLiteral(_),
+                            span: _,
+                        } => *k,
+                        _ => unreachable!(),
+                    };
+
+                    let span = k.span;
+                    invoke_fn(array_of, vec![k, *v], span)
+                }
+                _ => {
+                    unreachable!("object_entry should return an Entry")
+                }
+            })
+            .collect();
+
+        Ok((
+            r,
+            invoke_fn(
+                object_from_entries,
+                vec![invoke_fn(array_of, entries, input)],
+                input,
+            ),
+        ))
+    }
 }
 
 fn parens(i: Span) -> IResult<Span, Expression> {
@@ -851,6 +908,14 @@ mod tests {
     fn test_array_spread() {
         let input = Span::new("[1, 2, ...arr, 3, 4]");
         let r = array_literal(input);
+        eprintln!("{r:?}");
+        assert!(r.is_ok());
+    }
+
+    #[test]
+    fn test_object_spread() {
+        let input = Span::new("{ foo: 42, ...other }");
+        let r = object_literal(input);
         eprintln!("{r:?}");
         assert!(r.is_ok());
     }

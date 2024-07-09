@@ -161,7 +161,7 @@ impl Value {
         }
     }
 
-    pub fn must_be_map(&self) -> Result<&IndexMap<String, Value>, Box<dyn Error>> {
+    pub fn must_be_object(&self) -> Result<&IndexMap<String, Value>, Box<dyn Error>> {
         match self {
             Value::Object(map) => Ok(map),
             _ => Err(format!("Expected object, found {:?}", self).into()),
