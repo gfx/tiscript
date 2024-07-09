@@ -14,7 +14,7 @@ pub struct TypeCheckContext<'src, 'ctx> {
     super_context: Option<&'ctx TypeCheckContext<'src, 'ctx>>,
 }
 
-impl Default for TypeCheckContext<'_, '_>{
+impl Default for TypeCheckContext<'_, '_> {
     fn default() -> Self {
         Self {
             vars: HashMap::new(),
@@ -95,7 +95,7 @@ fn tc_coerce_type<'src>(
         (Undefined, Undefined) => Undefined,
         (Null, Null) => Null,
         (Bool, Bool) => Bool,
-        (Num , Num) => Num,
+        (Num, Num) => Num,
         (Int, Int) => Int,
         (Str, Str) => Str,
         (Array, Array) => Array,
@@ -215,9 +215,7 @@ fn tc_expr<'src>(
             }
             func.ret_type()
         }
-        Not(_ex) => {
-            TypeDecl::Bool
-        }
+        Not(_ex) => TypeDecl::Bool,
         Minus(ex) => {
             if tc_coerce_type(&tc_expr(ex, ctx)?, &TypeDecl::Int, ex.span).is_err() {
                 tc_coerce_type(&tc_expr(ex, ctx)?, &TypeDecl::Num, ex.span)?;

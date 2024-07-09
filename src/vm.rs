@@ -120,7 +120,10 @@ fn bin_op_lt(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
 }
 
 fn stack_overflow(ip: usize, instruction: Instruction, stack: &Vec<Value>) -> ! {
-    panic!("[BUG] Stack overflow in `[{}] {:?}` where stack.len() is {} (see --disasm to to look into the instruction)", ip, instruction, stack.len());
+    panic!(
+        "[BUG] Stack overflow in `[{}] {:?}` where stack.len() is {} (see --disasm to to look into the instruction)",
+        ip, instruction, stack.len()
+    );
 }
 
 impl Vm {
