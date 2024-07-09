@@ -1,4 +1,4 @@
-use std::{collections::HashMap, error::Error, io::Write, process::abort, rc::Rc};
+use std::{collections::HashMap, error::Error, io::Write, rc::Rc};
 
 use crate::{
     ast::{ExprEnum, Expression, Span, Statement, Statements, TypeDecl},
@@ -22,7 +22,6 @@ enum Target {
     Literal(usize),
     Local(String),
 }
-
 
 #[derive(Default)]
 pub struct Compiler {
@@ -354,10 +353,10 @@ impl Compiler {
                 Statement::ExportDefault(ex) => {
                     // `export default expr` is a syntactic sugar for `export const default = expr`.
                     let res = self.compile_expr(ex)?;
+                    self.add_copy_inst(res);
 
                     let name_id = self.add_literal(Value::Str("default".to_string()));
                     self.add_load_literal_inst(name_id);
-                    self.add_copy_inst(res);
                     self.add_inst(OpCode::Export, 0);
                 }
                 Statement::Export(stmts) => {
@@ -366,29 +365,14 @@ impl Compiler {
                     self.compile_stmts(stmts)?;
                     match stmts[0] {
                         Statement::VarDef { name, .. } => {
-                            let (stk_local, _) = self
-                                .target_stack
-                                .iter_mut()
-                                .enumerate()
-                                .find(|(_, tgt)| {
-                                    if let Target::Local(tgt) = tgt {
-                                        tgt == name.fragment()
-                                    } else {
-                                        false
-                                    }
-                                })
-                                .ok_or_else(|| format!("Variable not defined: {name}"))?;
-
                             let name_id = self.add_literal(Value::Str(name.to_string()));
                             self.add_load_literal_inst(name_id);
-                            self.add_copy_inst(StkIdx(stk_local));
                         }
                         Statement::FnDef { name, .. } => {
-                            assert!(!name.is_empty());
-                            unimplemented!();
+                            return Err(format!("Function export not supported: '{name}'").into())
                         }
                         _ => {
-                            abort();
+                            unreachable!();
                         }
                     }
 

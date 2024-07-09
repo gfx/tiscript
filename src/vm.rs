@@ -382,13 +382,13 @@ impl Vm {
                 OpCode::Export => {
                     let stack = &mut self.top_mut()?.stack;
 
-                    let value = stack.pop().expect("Export needs a value");
                     let name = stack
                         .pop()
                         .expect("Export needs a name")
                         .must_be_str()
                         .expect("Export name must be a string")
                         .to_string();
+                    let value = stack.pop().expect("Export needs a value");
 
                     match self.exports {
                         Value::Object(ref mut map) => {
