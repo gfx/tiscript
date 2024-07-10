@@ -54,7 +54,7 @@ TBD
 
 <!--
 ```rust
-use titys;
+use tiscript;
 
 // integrated to Serde
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -66,7 +66,7 @@ struct EditorConfig {
 }
 
 fn main() {
-    let data = titys::load("./editor_config.ts").unwrap();
+    let data = tiscript::load("./editor_config.ts").unwrap();
     let editorConfig = data.import("EditorConfig");
 
     println!("{:?}", editorConfig);

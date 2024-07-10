@@ -1,4 +1,4 @@
-// The CLI reads the source code of Titys program from stdin or the first arg, evaluates it, and prints the result to stdout.
+// The CLI reads the source code of TiScript program from stdin or the first arg, evaluates it, and prints the result to stdout in JSON.
 
 use std::{
     io::{BufRead, BufReader, Write},
@@ -6,7 +6,7 @@ use std::{
     process::exit,
 };
 
-use titys::{
+use tiscript::{
     compiler::Compiler,
     set_debug,
     type_checker::{type_check, TypeCheckContext},

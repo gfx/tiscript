@@ -4,7 +4,7 @@ use std::{fs, path::Path};
 
 use pretty_assertions::assert_eq;
 
-use titys::util::eval;
+use tiscript::util::eval;
 
 #[derive(Debug)]
 struct Spec {

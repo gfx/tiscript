@@ -12,7 +12,7 @@ use std::sync::atomic::AtomicBool;
 
 static DEBUG: AtomicBool = AtomicBool::new(false);
 
-pub static TAG: &str = "titys";
+pub static TAG: &str = "tiscript";
 
 #[inline]
 pub fn is_debug() -> bool {
@@ -26,14 +26,14 @@ pub fn set_debug(debug: bool) {
 #[macro_export]
 macro_rules! dprintln {
     ($fmt:literal) => {
-        if ::titys::is_debug() {
-            eprint!("[{}] ", ::titys::TAG);
+        if ::tiscript::is_debug() {
+            eprint!("[{}] ", ::tiscript::TAG);
             eprintln!($fmt);
         }
     };
     ($fmt:literal, $($args:expr),*) => {
-        if ::titys::is_debug() {
-            eprint!("[{}] ", ::titys::TAG);
+        if ::tiscript::is_debug() {
+            eprint!("[{}] ", ::tiscript::TAG);
             eprintln!($fmt, $($args),*);
         }
     };

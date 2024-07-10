@@ -163,7 +163,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "titys"
+name = "tiscript"
 version = "0.1.0"
 dependencies = [
  "bytecount",

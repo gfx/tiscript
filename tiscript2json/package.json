@@ -1,7 +1,7 @@
 {
-  "name": "titys2json",
+  "name": "tiscript2json",
   "version": "1.0.0",
-  "description": "",
+  "description": "A Node.js implementation of TiScript",
   "main": "index.mjs",
   "type": "module",
   "scripts": {
