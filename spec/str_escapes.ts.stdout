@@ -1,0 +1,9 @@
+{
+  "a": "Hello, \"world!\"",
+  "b": "A B C",
+  "c": "foo\tbar",
+  "d": "foo\nbar",
+  "e": "foo\rbar",
+  "f": "foo\\bar",
+  "g": "foo'bar"
+}

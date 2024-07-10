@@ -159,7 +159,7 @@ enum StrFragment<'a> {
     EscapedChar(char),
 }
 
-fn parse_unicode(input: Span<'_>) -> IResult<Span<'_>, char> {
+fn parse_unicode(input: Span) -> IResult<Span, char> {
     let parse_hex = take_while_m_n(1, 6, |c: char| c.is_ascii_hexdigit());
 
     let parse_delimited_hex = preceded(char('u'), delimited(char('{'), parse_hex, char('}')));
@@ -171,10 +171,23 @@ fn parse_unicode(input: Span<'_>) -> IResult<Span<'_>, char> {
     map_opt(parse_u32, std::char::from_u32)(input)
 }
 
+fn parse_hex_escape(input: Span) -> IResult<Span, char> {
+    let parse_hex = take_while_m_n(2, 2, |c: char| c.is_ascii_hexdigit());
+
+    let parse_delimited_hex = preceded(char('x'), parse_hex);
+
+    let parse_u8 = map_res(parse_delimited_hex, move |hex: Span| {
+        u32::from_str_radix(hex.fragment(), 16)
+    });
+
+    map_opt(parse_u8, std::char::from_u32)(input)
+}
+
 fn parse_escaped_char(input: Span<'_>) -> IResult<Span<'_>, char> {
     preceded(
         char('\\'),
         alt((
+            parse_hex_escape,
             parse_unicode,
             value('\n', char('n')),
             value('\r', char('r')),
@@ -194,8 +207,6 @@ fn parse_dq_literal(input: Span<'_>) -> IResult<Span, Span> {
 
 fn parse_dq_fragment(input: Span<'_>) -> IResult<Span<'_>, StrFragment<'_>> {
     alt((
-        // The `map` combinator runs a parser, then applies a function to the output
-        // of that parser.
         map(parse_dq_literal, StrFragment::Literal),
         map(parse_escaped_char, StrFragment::EscapedChar),
     ))(input)
@@ -253,8 +264,6 @@ fn sq_str_literal(i: Span) -> IResult<Span, Expression> {
     Ok((r, Expression::new(ExprEnum::StrLiteral(val), i)))
 }
 
-/// parse a template string literal
-// TODO: implement interpolation of expressions (`${expr}`).
 fn tmpl_str_literal(i: Span) -> IResult<Span, Expression> {
     let build_string = fold_many0(parse_tmpl_fragment, String::new, |mut string, fragment| {
         match fragment {
