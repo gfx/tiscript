@@ -657,7 +657,7 @@ fn if_statement(input: Span) -> IResult<Span, Statement> {
     ))
 }
 
-fn var_def<'a>(span: Span<'a>, i: Span<'a>, is_const: bool) -> IResult<Span<'a>, Statement<'a>> {
+fn variable_def<'a>(span: Span<'a>, i: Span<'a>, is_const: bool) -> IResult<Span<'a>, Statement<'a>> {
     let (i, (name, td, ex)) = cut(|i| {
         let (i, name) = space_delimited(identifier)(i)?;
 
@@ -687,16 +687,26 @@ fn var_def<'a>(span: Span<'a>, i: Span<'a>, is_const: bool) -> IResult<Span<'a>,
     ))
 }
 
+fn var_def(input: Span) -> IResult<Span, Statement> {
+    let (i, _) = delimited(multispace0, tag("var"), multispace1)(input)?;
+    let _ = variable_def(input, i, false);
+    // parser knows `var` syntax, but it causes an error because it's not supported.
+    Err(nom::Err::Failure(nom::error::Error::new(
+        input,
+        nom::error::ErrorKind::Verify,
+    )))
+}
+
 fn let_def(i: Span) -> IResult<Span, Statement> {
     let span = i;
     let (i, _) = delimited(multispace0, tag("let"), multispace1)(i)?;
-    var_def(span, i, false)
+    variable_def(span, i, false)
 }
 
 fn const_def(i: Span) -> IResult<Span, Statement> {
     let span = i;
     let (i, _) = delimited(multispace0, tag("const"), multispace1)(i)?;
-    var_def(span, i, true)
+    variable_def(span, i, true)
 }
 
 fn var_assign(i: Span) -> IResult<Span, Statement> {
@@ -819,6 +829,7 @@ fn general_statement<'a>(last: bool) -> impl Fn(Span<'a>) -> IResult<Span<'a>, S
     };
     move |input| {
         alt((
+            var_def,
             let_def,
             const_def,
             var_assign,
@@ -947,5 +958,33 @@ mod tests {
         let input = Span::new("1 <= 2");
         let (_r, ex) = cond_expr(input).unwrap();
         assert_eq!(*ex.span.fragment(), "1 <= 2");
+    }
+
+    #[test]
+    fn test_good_escape() {
+        let input = Span::new(r#""\x00""#);
+        let r = parse_escaped_char(input);
+        assert!(r.is_err());
+    }
+
+    #[test]
+    fn test_bad_escape1() {
+        let input = Span::new(r#""\x""#);
+        let r = parse_escaped_char(input);
+        assert!(r.is_err());
+    }
+
+    #[test]
+    fn test_bad_escape2() {
+        let input = Span::new(r#""\x0""#);
+        let r = parse_escaped_char(input);
+        assert!(r.is_err());
+    }
+
+    #[test]
+    fn test_bad_escape3() {
+        let input = Span::new(r#""\x000""#);
+        let r = parse_escaped_char(input);
+        assert!(r.is_err());
     }
 }
