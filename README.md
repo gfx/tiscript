@@ -109,6 +109,9 @@ This is a list of features in ECMA-262 that are planned or implemented:
 * [x] array spread syntax
 * [ ] `class` statement
 * [ ] `for-of` loop
+* [ ] C-style `for` (with restrictions)
+* [ ] `while` loop (with restrictions)
+* [ ] `do-while` loop (with restrictions)
 * [ ] exceptions (`Error`, `try-catch-finally`, `throw` and so on)
 * [ ] temporal module
 * [x] function call
@@ -152,18 +155,18 @@ This is a list of features that won't be implemented:
 * `var` declaration
 * `eval` function
 * `new Function()`
-* `Date` class
-* C-style `for` loop
+* Most of runtime (e.g. typed arrays)
 * `for-in` loop
-* `while` loop
-* `do-while` loop
 * `async` and `await`
 * `symbol`
 * true bigint
+* decorators (just because the spec is too large)
 * `enum`
 * `const enum`
 * `namespace`
-* unlimited recursion
+* commonjs features
+* no strict features
+* unlimited recursion / loop
 * anything that meets Turing completeness
 
 
