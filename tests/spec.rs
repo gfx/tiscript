@@ -14,10 +14,10 @@ struct Spec {
     expected_stderr: String,
 }
 
-fn run_titys2json(filename: &String) -> Result<String, Box<dyn std::error::Error>> {
-    // run `node titys2json $filename`
+fn run_tiscript2json(filename: &String) -> Result<String, Box<dyn std::error::Error>> {
+    // run `node tiscript2json $filename`
     let output = std::process::Command::new("node")
-        .arg("titys2json")
+        .arg("tiscript2json")
         .arg(filename)
         .output()?;
 
@@ -77,12 +77,12 @@ fn test_evaluate_specs_that_should_pass() {
         }
         let source = fs::read_to_string(&spec.filename).unwrap();
         let result = eval(&source, Path::new(&spec.filename));
-        let titys2json = run_titys2json(&spec.filename);
+        let tiscript2json = run_tiscript2json(&spec.filename);
 
-        assert!(result.is_ok(), "titys should pass in {}", spec.filename);
+        assert!(result.is_ok(), "tiscript should pass in {}", spec.filename);
         assert!(
-            titys2json.is_ok(),
-            "titys2json should pass in {}",
+            tiscript2json.is_ok(),
+            "tiscript2json should pass in {}",
             spec.filename
         );
 
@@ -90,7 +90,7 @@ fn test_evaluate_specs_that_should_pass() {
 
         assert_eq!(
             output.trim(),
-            titys2json.unwrap().trim(),
+            tiscript2json.unwrap().trim(),
             "output vs tsc in {}",
             spec.filename
         );
@@ -121,18 +121,18 @@ fn test_evaluate_specs_that_should_fail() {
         }
         let source = fs::read_to_string(&spec.filename).unwrap();
         let result = eval(&source, Path::new(&spec.filename));
-        let titys2json = run_titys2json(&spec.filename);
+        let tiscript2json = run_tiscript2json(&spec.filename);
 
         assert!(result.is_err());
-        assert!(titys2json.is_err());
+        assert!(tiscript2json.is_err());
         let err = result.unwrap_err();
 
         // extract the message body (just after the first whitespace)
-        let tsc_full_message = titys2json.unwrap_err().to_string();
+        let tsc_full_message = tiscript2json.unwrap_err().to_string();
         let (_, tsc_message) = tsc_full_message.split_at(tsc_full_message.find(' ').unwrap() + 1);
 
-        let titys_full_message = err.to_string();
-        let (_, err) = titys_full_message.split_at(titys_full_message.find(' ').unwrap() + 1);
+        let tiscript_full_message = err.to_string();
+        let (_, err) = tiscript_full_message.split_at(tiscript_full_message.find(' ').unwrap() + 1);
 
         assert_eq!(
             err.trim(),
