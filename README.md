@@ -143,7 +143,7 @@ This is a list of features in TypeScript that are planned or implemented:
 * [ ] intersection type annotations
 * [ ] tuple type annotations
 * [ ] array type annotations
-* [ ] object type annotations
+* [ ] [WIP] object type annotations
 * [ ] type guards
 * [ ] `interface` statement
 * [ ] `type` statement

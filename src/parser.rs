@@ -657,7 +657,11 @@ fn if_statement(input: Span) -> IResult<Span, Statement> {
     ))
 }
 
-fn variable_def<'a>(span: Span<'a>, i: Span<'a>, is_const: bool) -> IResult<Span<'a>, Statement<'a>> {
+fn variable_def<'a>(
+    span: Span<'a>,
+    i: Span<'a>,
+    is_const: bool,
+) -> IResult<Span<'a>, Statement<'a>> {
     let (i, (name, td, ex)) = cut(|i| {
         let (i, name) = space_delimited(identifier)(i)?;
 
@@ -666,7 +670,7 @@ fn variable_def<'a>(span: Span<'a>, i: Span<'a>, is_const: bool) -> IResult<Span
         let (mut i, r) = opt(space_delimited(char(':')))(i)?;
         if r.is_some() {
             let actual_td;
-            (i, actual_td) = type_decl(i)?;
+            (i, actual_td) = type_expr(i)?;
             td = Some(actual_td);
         }
 
@@ -691,7 +695,7 @@ fn var_def(input: Span) -> IResult<Span, Statement> {
     let (i, _) = delimited(multispace0, tag("var"), multispace1)(input)?;
     let _ = variable_def(input, i, false);
     // parser knows `var` syntax, but it causes an error because it's not supported.
-    Err(nom::Err::Failure(nom::error::Error::new(
+    Err(nom::Err::Error(nom::error::Error::new(
         input,
         nom::error::ErrorKind::Verify,
     )))
@@ -730,18 +734,20 @@ fn expr_statement(i: Span) -> IResult<Span, Statement> {
     Ok((i, Statement::Expression(res)))
 }
 
-fn type_decl(i: Span) -> IResult<Span, TypeDecl> {
+fn type_primitive(i: Span) -> IResult<Span, TypeDecl> {
     let (i, td) = space_delimited(identifier)(i)?;
+
     Ok((
         i,
         match *td.fragment() {
+            "undefined" => TypeDecl::Undefined,
             "null" => TypeDecl::Null,
-            "bigint" => TypeDecl::Int,
+            "boolean" => TypeDecl::Bool,
             "number" => TypeDecl::Num,
+            "bigint" => TypeDecl::Int,
             "string" => TypeDecl::Str,
-            "cofn" => TypeDecl::Coro,
             _ => {
-                return Err(nom::Err::Failure(nom::error::Error::new(
+                return Err(nom::Err::Error(nom::error::Error::new(
                     td,
                     nom::error::ErrorKind::Verify,
                 )));
@@ -750,10 +756,30 @@ fn type_decl(i: Span) -> IResult<Span, TypeDecl> {
     ))
 }
 
+fn type_object(input: Span) -> IResult<Span, TypeDecl> {
+    // { key: value, "key": "value", ... }
+    // almost the same as object literals, but no arbitrary expressions.
+    let(i, _) = space_delimited(delimited(
+        open_brace,
+        many0(delimited(
+            multispace0,
+            alt((object_entry, spread_expr)),
+            space_delimited(opt(char(','))),
+        )),
+        close_brace,
+    ))(input)?;
+    Ok((i, TypeDecl::Object))
+}
+
+fn type_expr(i: Span) -> IResult<Span, TypeDecl> {
+    let (i, td) = alt((type_primitive, type_object))(i)?;
+    Ok((i, td))
+}
+
 fn argument(i: Span) -> IResult<Span, (Span, TypeDecl)> {
     let (i, ident) = space_delimited(identifier)(i)?;
     let (i, _) = char(':')(i)?;
-    let (i, td) = type_decl(i)?;
+    let (i, td) = type_expr(i)?;
 
     Ok((i, (ident, td)))
 }
@@ -766,7 +792,7 @@ fn fn_def_statement(i: Span) -> IResult<Span, Statement> {
         let (i, args) = separated_list0(char(','), space_delimited(argument))(i)?;
         let (i, _) = space_delimited(tag(")"))(i)?;
         let (i, _) = space_delimited(tag(":"))(i)?;
-        let (i, ret_type) = type_decl(i)?;
+        let (i, ret_type) = type_expr(i)?;
         let (i, stmts) = delimited(open_brace, statements, close_brace)(i)?;
         Ok((i, (name, args, ret_type, stmts)))
     })(i)?;
@@ -796,7 +822,7 @@ fn export_statement(i: Span) -> IResult<Span, Statement> {
     match &stmt {
         Statement::VarDef { .. } | Statement::FnDef { .. } => {}
         _ => {
-            return Err(nom::Err::Failure(nom::error::Error::new(
+            return Err(nom::Err::Error(nom::error::Error::new(
                 i,
                 nom::error::ErrorKind::Verify,
             )));
@@ -986,5 +1012,19 @@ mod tests {
         let input = Span::new(r#""\x000""#);
         let r = parse_escaped_char(input);
         assert!(r.is_err());
+    }
+
+    #[test]
+    fn test_type_object_empty() {
+        let input = Span::new("{}");
+        let r = type_object(input);
+        assert!(r.is_ok());
+    }
+
+    #[test]
+    fn test_type_object_entries() {
+        let input = Span::new("{ foo: string, bar: number }");
+        let r = type_object(input);
+        assert!(r.is_ok());
     }
 }
