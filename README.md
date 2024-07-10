@@ -9,11 +9,11 @@ TiScript is intentionally designed to be **Turing incomplete**. This means it fo
 
 ## Project Status
 
-This is a work in progress. **The current implementation is a proof of concept**, and the feature is incomplete. The goal is to provide a simple and easy-to-use configuration language that can be used in various applications.
+This is a work in progress. **The current implementation is MVP** and not intended to be used in production.
 
 ## Example
 
-TiScript definition (it's also a TypeScript snippet):
+TiScript definition (it's 100% compatible with TypeScript):
 
 ```typescript
 // editor_config.ts
