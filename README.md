@@ -1,19 +1,19 @@
-# TiTys - Turing-Incomplete TypeScript as a Configuration Language
+# TiScript - Turing-Incomplete TypeScript as a Configuration Language
 
-TiTys is a configuration language designed to be intuitive and easy to work with for both humans and machines. It draws inspiration from TypeScript and JSON, offering the benefits of both:
+TiScript is a configuration language designed to be intuitive and easy for humans and machines. It draws inspiration from TypeScript and JSON, offering the benefits of both:
 
 * **Readability and maintainability** for humans, similar to JSON.
-* **Type safety and structure** for machines, inspired by TypeScript.
+* **Type safety and structure** for machines inspired by TypeScript.
 
-TiTys is intentionally designed to be **Turing incomplete**. This means it's focused on defining configurations and not intended for general programming tasks. However, since it's a subset of TypeScript, you can still leverage the TypeScript development toolkit for features like language services.
+TiScript is intentionally designed to be **Turing incomplete**. This means it focuses on defining configurations and is not intended for general programming tasks. However, since it's a subset of TypeScript, you can still leverage the TypeScript development toolkit for features like language services.
 
 ## Project Status
 
-This is a work in progress. **The current implementation is a proof of concept** and not yet feature complete. The goal is to provide a simple and easy-to-use configuration language that can be used in a variety of applications.
+This is a work in progress. **The current implementation is a proof of concept**, and the feature is incomplete. The goal is to provide a simple and easy-to-use configuration language that can be used in various applications.
 
 ## Example
 
-TiTys definition:
+TiScript definition (it's also a TypeScript snippet):
 
 ```typescript
 // editor_config.ts
@@ -27,7 +27,7 @@ export const EditorConfig = {
 };
 ```
 
-Right now, the only interface is a command called titis(1) (or `cargo run` on development).
+Currently, the only interface is a command called tiscript(1) (or `cargo run` on development).
 
 ```sh
 $ cargo run ./editor_config.ts
@@ -162,7 +162,7 @@ This is a list of features that won't be implemented:
 * anything that meets Turing completeness
 
 
-Note that **any features that TiTys recognizes but TypeScript compiler does not** are invalid, but not vice versa. This is because TiTys is a strict subset of TypeScript.
+Note that **any features TiScript recognizes, but TypeScript compiler does not** are invalid, but not vice versa. This is because TiScript is a strict subset of TypeScript.
 
 ## Similar Works
 
@@ -173,7 +173,7 @@ Note that **any features that TiTys recognizes but TypeScript compiler does not*
 
 FUJI, Goro (gfx).
 
-This project is based on https://github.com/msakuta/ruscal, where much of code comes from.
+This project is based on https://github.com/msakuta/ruscal, where much of the code comes from.
 
 ## License
 
