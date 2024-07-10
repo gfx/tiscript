@@ -1,0 +1,9 @@
+export const a = 1 <= 2;
+export const b = 2 <= 1;
+export const c = 1 <= 2n;
+export const d = 2n <= 1;
+export const e = "foo" <= "bar";
+export const f = "bar" <= "foo";
+export const x = 1 <= 1;
+export const y = 1n <= 1n;
+export const z = "foo" <= "foo";

@@ -46,11 +46,13 @@ the output is:
 }
 ```
 
+## Rust API
+
+### Synopsis
+
 TBD
 
 <!--
-Use the data in Rust:
-
 ```rust
 use titys;
 
@@ -69,8 +71,11 @@ fn main() {
 
     println!("{:?}", editorConfig);
 }
-```
--->
+``` -->
+
+### Description
+
+TBD
 
 ## Features
 
@@ -94,7 +99,7 @@ This is a list of features in ECMA-262 that are planned or implemented:
 * [x] array literals
 * [x] object literals
 * [ ] [WIP] arithmetic operators (`+`, `-`, `*`, `/`, `%`, `**`)
-* [ ] [WIP] comparison operators (`==`, `!=`, `===`, `!==`, `<`, `>`, `<=`, `>=`)
+* [x] comparison operators (`==`, `!=`, `===`, `!==`, `<`, `>`, `<=`, `>=`)
 * [ ] increment and decrement operators (`++`, `--`)
 * [ ] ternary operator (`cond ? t : f`)
 * [ ] logical operators (`&&`, `||`, `!`)

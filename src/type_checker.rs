@@ -3,7 +3,7 @@ use std::{collections::HashMap, error::Error};
 use crate::{
     ast::{ExprEnum, Expression, Span, Statement, TypeDecl},
     bytecode::{standard_functions, FnDecl, NativeFn, UserFn},
-    parser::{calc_offset, GetSpan},
+    parser::GetSpan,
 };
 
 pub struct TypeCheckContext<'src, 'ctx> {
@@ -156,6 +156,7 @@ fn binary_op_type(lhs: &TypeDecl, rhs: &TypeDecl) -> Result<TypeDecl, ()> {
     })
 }
 
+// <, <=, >, >=
 fn tc_binary_cmp<'src>(
     lhs: &Expression<'src>,
     rhs: &Expression<'src>,
@@ -166,14 +167,45 @@ fn tc_binary_cmp<'src>(
     let lhst = tc_expr(lhs, ctx)?;
     let rhst = tc_expr(rhs, ctx)?;
     Ok(match (&lhst, &rhst) {
-        (Any, _) => Int,
-        (_, Any) => Int,
-        (Undefined | Null, _) => Int,
-        (_, Undefined | Null) => Int,
-        (Bool, Bool) => Int,
-        (Num, Num) => Int,
-        (Int, Int) => Int,
-        (Str, Str) => Int,
+        (Num, Num) => Bool,
+        (Int, Int) => Bool,
+        (Num, Int) => Bool,
+        (Int, Num) => Bool,
+        (Str, Str) => Bool,
+        _ => {
+            return Err(TypeCheckError::new(
+                format!(
+                    "Operation {op} between incompatible type: {:?} and {:?}",
+                    lhst, rhst,
+                ),
+                lhs.span,
+            ))
+        }
+    })
+}
+
+// ==, !=
+fn tc_binary_ee<'src>(
+    lhs: &Expression<'src>,
+    rhs: &Expression<'src>,
+    ctx: &mut TypeCheckContext<'src, '_>,
+    op: &str,
+) -> Result<TypeDecl, TypeCheckError<'src>> {
+    use TypeDecl::*;
+    let lhst = tc_expr(lhs, ctx)?;
+    let rhst = tc_expr(rhs, ctx)?;
+    Ok(match (&lhst, &rhst) {
+        (Any, _) => Bool,
+        (_, Any) => Bool,
+        (Undefined, _) => Bool,
+        (_, Undefined) => Bool,
+        (Null, _) => Bool,
+        (_, Null) => Bool,
+        (Num, Num) => Bool,
+        (Int, Int) => Bool,
+        (Num, Int) => Bool,
+        (Int, Num) => Bool,
+        (Str, Str) => Bool,
         _ => {
             return Err(TypeCheckError::new(
                 format!(
@@ -238,29 +270,13 @@ fn tc_expr<'src>(
         Mod(lhs, rhs) => tc_binary_op(lhs, rhs, ctx, "%")?,
         Div(lhs, rhs) => tc_binary_op(lhs, rhs, ctx, "/")?,
         Lt(lhs, rhs) => tc_binary_cmp(lhs, rhs, ctx, "<")?,
+        Le(lhs, rhs) => tc_binary_cmp(lhs, rhs, ctx, "<=")?,
         Gt(lhs, rhs) => tc_binary_cmp(lhs, rhs, ctx, ">")?,
-        If(cond, true_branch, false_branch) => {
-            tc_coerce_type(&tc_expr(cond, ctx)?, &TypeDecl::Int, cond.span)?;
-            let true_type = type_check(true_branch, ctx)?;
-            if let Some(false_branch) = false_branch {
-                let false_type = type_check(false_branch, ctx)?;
-                binary_op_type(&true_type, &false_type).map_err(|_| {
-                    let true_span = true_branch.span();
-                    let false_span = false_branch.span();
-                    TypeCheckError::new(
-                        format!(
-                            "Conditional expression doesn't have the \
-              compatible types in true and false branch: \
-              {:?} and {:?}",
-                            true_type, false_type
-                        ),
-                        calc_offset(true_span, false_span),
-                    )
-                })?
-            } else {
-                true_type
-            }
-        }
+        Ge(lhs, rhs) => tc_binary_cmp(lhs, rhs, ctx, ">=")?,
+        Ee(lhs, rhs) => tc_binary_ee(lhs, rhs, ctx, "==")?,
+        Ne(lhs, rhs) => tc_binary_ee(lhs, rhs, ctx, "!=")?,
+        Eee(_lhs, _rhs) => Ok(TypeDecl::Bool)?,
+        Nee(_lhs, _rhs) => Ok(TypeDecl::Bool)?,
         Await(ex) => {
             let _res = tc_expr(ex, ctx)?;
             TypeDecl::Any
@@ -289,6 +305,37 @@ pub fn type_check<'src>(
                 let target = ctx.vars.get(**name).expect("Variable not found");
                 tc_coerce_type(&init_type, target, ex.span)?;
             }
+            Statement::Block(stmts) => {
+                res = type_check(stmts, ctx)?;
+            }
+            Statement::If {
+                true_branch,
+                false_branch,
+                ..
+            } => {
+                // No type check for cond so far. Any type can be coerced to a bool.
+
+                let Statement::Block(true_branch) = &**true_branch else {
+                    unreachable!("If statement should have a block in true branch");
+                };
+                let true_type = type_check(true_branch, ctx)?;
+
+                if let Some(false_branch) = false_branch {
+                    match &**false_branch {
+                        Statement::Block(_) => {
+                            type_check(&vec![*false_branch.clone()], ctx)?;
+                        }
+                        Statement::If { .. } => {
+                            type_check(&vec![*false_branch.clone()], ctx)?;
+                        }
+                        _ => {
+                            unreachable!("If statement should have a block in false branch, but got {false_branch:?}");
+                        }
+                    }
+                }
+                res = true_type;
+            }
+
             Statement::FnDef {
                 name,
                 args,

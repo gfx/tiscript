@@ -479,7 +479,7 @@ fn object_literal(input: Span) -> IResult<Span, Expression> {
         if !temp.is_empty() {
             let entries = invoke_fn(array_of, temp, input);
             args.push(invoke_fn(object_from_entries, vec![entries], input));
-}
+        }
 
         Ok((r, invoke_fn(Span::new("Object.assign"), args, input)))
     } else {
@@ -572,53 +572,31 @@ fn add_expr(i: Span) -> IResult<Span, Expression> {
 
 fn cond_expr(i0: Span) -> IResult<Span, Expression> {
     let (i, first) = add_expr(i0)?;
-    let (i, cond) = space_delimited(alt((char('<'), char('>'))))(i)?;
+    let (i, cond) = space_delimited(alt((
+        tag("<="),
+        tag("<"),
+        tag(">="),
+        tag(">"),
+        tag("!=="),
+        tag("!="),
+        tag("==="),
+        tag("=="),
+    )))(i)?;
     let (i, second) = add_expr(i)?;
     let span = calc_offset(i0, i);
     Ok((
         i,
-        match cond {
-            '<' => Expression::new(ExprEnum::Lt(Box::new(first), Box::new(second)), span),
-            '>' => Expression::new(ExprEnum::Gt(Box::new(first), Box::new(second)), span),
-            // TODO: ==, !=, ===, !===, <=, >=
+        match *cond.fragment() {
+            "<" => Expression::new(ExprEnum::Lt(Box::new(first), Box::new(second)), span),
+            "<=" => Expression::new(ExprEnum::Le(Box::new(first), Box::new(second)), span),
+            ">" => Expression::new(ExprEnum::Gt(Box::new(first), Box::new(second)), span),
+            ">=" => Expression::new(ExprEnum::Ge(Box::new(first), Box::new(second)), span),
+            "==" => Expression::new(ExprEnum::Ee(Box::new(first), Box::new(second)), span),
+            "!=" => Expression::new(ExprEnum::Ne(Box::new(first), Box::new(second)), span),
+            "===" => Expression::new(ExprEnum::Eee(Box::new(first), Box::new(second)), span),
+            "!==" => Expression::new(ExprEnum::Nee(Box::new(first), Box::new(second)), span),
             _ => unreachable!(),
         },
-    ))
-}
-
-fn open_brace(i: Span) -> IResult<Span, ()> {
-    let (i, _) = space_delimited(char('{'))(i)?;
-    Ok((i, ()))
-}
-
-fn close_brace(i: Span) -> IResult<Span, ()> {
-    let (i, _) = space_delimited(char('}'))(i)?;
-    Ok((i, ()))
-}
-
-fn if_expr(i0: Span) -> IResult<Span, Expression> {
-    let (i, _) = space_delimited(tag("if"))(i0)?;
-    let (i, cond) = expr(i)?;
-    let (i, t_case) = delimited(open_brace, statements, close_brace)(i)?;
-    let (i, f_case) = opt(preceded(
-        space_delimited(tag("else")),
-        alt((
-            delimited(open_brace, statements, close_brace),
-            map_res(
-                if_expr,
-                |v| -> Result<Vec<Statement>, nom::error::Error<&str>> {
-                    Ok(vec![Statement::Expression(v)])
-                },
-            ),
-        )),
-    ))(i)?;
-
-    Ok((
-        i,
-        Expression::new(
-            ExprEnum::If(Box::new(cond), Box::new(t_case), f_case.map(Box::new)),
-            calc_offset(i0, i),
-        ),
     ))
 }
 
@@ -633,7 +611,41 @@ fn await_expr(i: Span) -> IResult<Span, Expression> {
 }
 
 fn expr(i: Span) -> IResult<Span, Expression> {
-    alt((await_expr, if_expr, cond_expr, add_expr))(i)
+    alt((await_expr, cond_expr, add_expr))(i)
+}
+
+fn open_brace(i: Span) -> IResult<Span, ()> {
+    let (i, _) = space_delimited(char('{'))(i)?;
+    Ok((i, ()))
+}
+
+fn close_brace(i: Span) -> IResult<Span, ()> {
+    let (i, _) = space_delimited(char('}'))(i)?;
+    Ok((i, ()))
+}
+
+fn block_statement(i: Span) -> IResult<Span, Statement> {
+    let (i, stmts) = delimited(open_brace, statements, close_brace)(i)?;
+    Ok((i, Statement::Block(stmts)))
+}
+
+fn if_statement(input: Span) -> IResult<Span, Statement> {
+    let (i, _) = space_delimited(tag("if"))(input)?;
+    let (i, cond) = expr(i)?;
+    let (i, true_branch) = block_statement(i)?;
+    let (i, false_branch) = opt(preceded(
+        space_delimited(tag("else")),
+        alt((block_statement, if_statement)),
+    ))(i)?;
+
+    Ok((
+        i,
+        Statement::If {
+            cond: Box::new(cond),
+            true_branch: Box::new(true_branch),
+            false_branch: false_branch.map(Box::new),
+        },
+    ))
 }
 
 fn var_def<'a>(span: Span<'a>, i: Span<'a>, is_const: bool) -> IResult<Span<'a>, Statement<'a>> {
@@ -801,6 +813,7 @@ fn general_statement<'a>(last: bool) -> impl Fn(Span<'a>) -> IResult<Span<'a>, S
             let_def,
             const_def,
             var_assign,
+            if_statement,
             fn_def_statement,
             return_statement,
             yield_statement,
@@ -918,5 +931,12 @@ mod tests {
         let r = object_literal(input);
         eprintln!("{r:?}");
         assert!(r.is_ok());
+    }
+
+    #[test]
+    fn test_cond_expr() {
+        let input = Span::new("1 <= 2");
+        let (_r, ex) = cond_expr(input).unwrap();
+        assert_eq!(*ex.span.fragment(), "1 <= 2");
     }
 }

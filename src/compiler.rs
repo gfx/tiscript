@@ -209,8 +209,14 @@ impl Compiler {
             ExprEnum::Mul(lhs, rhs) => self.bin_op(OpCode::Mul, lhs, rhs)?,
             ExprEnum::Div(lhs, rhs) => self.bin_op(OpCode::Div, lhs, rhs)?,
             ExprEnum::Mod(lhs, rhs) => self.bin_op(OpCode::Mod, lhs, rhs)?,
-            ExprEnum::Gt(lhs, rhs) => self.bin_op(OpCode::Lt, rhs, lhs)?,
             ExprEnum::Lt(lhs, rhs) => self.bin_op(OpCode::Lt, lhs, rhs)?,
+            ExprEnum::Le(lhs, rhs) => self.bin_op(OpCode::Le, lhs, rhs)?,
+            ExprEnum::Gt(lhs, rhs) => self.bin_op(OpCode::Gt, lhs, rhs)?,
+            ExprEnum::Ge(lhs, rhs) => self.bin_op(OpCode::Ge, lhs, rhs)?,
+            ExprEnum::Ee(lhs, rhs) => self.bin_op(OpCode::Ee, lhs, rhs)?,
+            ExprEnum::Ne(lhs, rhs) => self.bin_op(OpCode::Ne, lhs, rhs)?,
+            ExprEnum::Eee(lhs, rhs) => self.bin_op(OpCode::Eee, lhs, rhs)?,
+            ExprEnum::Nee(lhs, rhs) => self.bin_op(OpCode::Nee, lhs, rhs)?,
             ExprEnum::FnInvoke(name, args) => {
                 let stack_before_args = self.target_stack.len();
                 let name_id = self.add_literal(Value::Str(name.to_string()));
@@ -260,24 +266,6 @@ impl Compiler {
                 //         .collect::<Vec<_>>()
                 //         .join(", ")
                 // );
-                self.stack_top()
-            }
-            ExprEnum::If(cond, true_branch, false_branch) => {
-                use OpCode::*;
-                let cond = self.compile_expr(cond)?;
-                self.add_copy_inst(cond);
-                let jf_inst = self.add_jf_inst();
-                let stack_size_before = self.target_stack.len();
-                self.compile_stmts_or_nop(true_branch)?;
-                self.coerce_stack(StkIdx(stack_size_before + 1));
-                let jmp_inst = self.add_inst(Jmp, 0);
-                self.fixup_jmp(jf_inst);
-                self.target_stack.resize(stack_size_before, Target::Temp);
-                if let Some(false_branch) = false_branch.as_ref() {
-                    self.compile_stmts_or_nop(false_branch)?;
-                }
-                self.coerce_stack(StkIdx(stack_size_before + 1));
-                self.fixup_jmp(jmp_inst);
                 self.stack_top()
             }
             ExprEnum::Await(ex) => {
@@ -356,6 +344,41 @@ impl Compiler {
                     self.add_copy_inst(ex);
                     self.add_store_inst(StkIdx(stk_local));
                     last_result = Some(ex);
+                }
+                Statement::Block(stmts) => {
+                    last_result = Some(self.compile_stmts_or_nop(stmts)?);
+                }
+                Statement::If {
+                    cond,
+                    true_branch,
+                    false_branch,
+                } => {
+                    let cond = self.compile_expr(cond)?;
+                    self.add_copy_inst(cond);
+                    let jf_inst = self.add_jf_inst();
+                    let stack_size_before = self.target_stack.len();
+                    let Statement::Block(true_branch) = &**true_branch else {
+                        unreachable!()
+                    };
+                    self.compile_stmts_or_nop(true_branch)?;
+                    self.coerce_stack(StkIdx(stack_size_before + 1));
+                    let jmp_inst = self.add_inst(OpCode::Jmp, 0);
+                    self.fixup_jmp(jf_inst);
+                    self.target_stack.resize(stack_size_before, Target::Temp);
+                    if let Some(false_branch) = false_branch.as_ref() {
+                        // false branch may be a If statement or a Block statement.
+                        match &**false_branch {
+                            Statement::Block(false_branch) => {
+                                self.compile_stmts_or_nop(false_branch)?;
+                            }
+                            Statement::If { .. } => {
+                                self.compile_stmts_or_nop(&vec![(**false_branch).clone()])?;
+                            }
+                            _ => unreachable!(),
+                        }
+                    }
+                    self.coerce_stack(StkIdx(stack_size_before + 1));
+                    self.fixup_jmp(jmp_inst);
                 }
                 Statement::FnDef {
                     name,

@@ -59,13 +59,14 @@ pub enum ExprEnum<'src> {
     Mul(Box<Expression<'src>>, Box<Expression<'src>>),
     Div(Box<Expression<'src>>, Box<Expression<'src>>),
     Mod(Box<Expression<'src>>, Box<Expression<'src>>),
-    Gt(Box<Expression<'src>>, Box<Expression<'src>>),
     Lt(Box<Expression<'src>>, Box<Expression<'src>>),
-    If(
-        Box<Expression<'src>>,
-        Box<Statements<'src>>,
-        Option<Box<Statements<'src>>>,
-    ),
+    Le(Box<Expression<'src>>, Box<Expression<'src>>),
+    Gt(Box<Expression<'src>>, Box<Expression<'src>>),
+    Ge(Box<Expression<'src>>, Box<Expression<'src>>),
+    Ee(Box<Expression<'src>>, Box<Expression<'src>>),
+    Ne(Box<Expression<'src>>, Box<Expression<'src>>),
+    Eee(Box<Expression<'src>>, Box<Expression<'src>>),
+    Nee(Box<Expression<'src>>, Box<Expression<'src>>),
     Await(Box<Expression<'src>>),
 }
 
@@ -96,6 +97,12 @@ pub enum Statement<'src> {
         name: Span<'src>,
         ex: Expression<'src>,
     },
+    Block(Statements<'src>),
+    If {
+        cond: Box<Expression<'src>>,
+        true_branch: Box<Statement<'src>>,
+        false_branch: Option<Box<Statement<'src>>>,
+    },
     FnDef {
         name: Span<'src>,
         args: Vec<(Span<'src>, TypeDecl)>,
@@ -111,18 +118,19 @@ pub enum Statement<'src> {
 
 impl<'src> Statement<'src> {
     pub fn span(&self) -> Option<Span<'src>> {
-        use Statement::*;
-        Some(match self {
-            Expression(ex) => ex.span,
-            VarDef { span, .. } => *span,
-            VarAssign { span, .. } => *span,
-            FnDef { name, stmts, .. } => calc_offset(*name, stmts.span()),
-            Return(ex) => ex.span,
-            Yield(ex) => ex.span,
-            ExportDefault(ex) => ex.span,
-            Export(stmts) => stmts[0].span().unwrap(),
-        })
+        match self {
+            Statement::Expression(ex) => Some(ex.span),
+            Statement::VarDef { span, .. } => Some(*span),
+            Statement::VarAssign { span, .. } => Some(*span),
+            // safely unwrap a Option<Option<T>>
+            Statement::Block(stmts) => stmts.first().map(|stmt| stmt.span()).unwrap_or(None),
+            Statement::If { cond, .. } => Some(cond.span),
+            Statement::FnDef { name, stmts, .. } => Some(calc_offset(*name, stmts.span())),
+            Statement::Return(ex) => Some(ex.span),
+            Statement::Yield(ex) => Some(ex.span),
+            Statement::ExportDefault(ex) => Some(ex.span),
+            Statement::Export(stmts) => stmts[0].span(),
+        }
     }
 }
-
 pub type Statements<'a> = Vec<Statement<'a>>;

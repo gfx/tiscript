@@ -49,6 +49,12 @@ pub struct Vm {
     debug_output: bool,
 }
 
+impl PartialEq for Vm {
+    fn eq(&self, other: &Self) -> bool {
+        &self == &other
+    }
+}
+
 impl std::fmt::Debug for Vm {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "<Vm>")
@@ -117,6 +123,82 @@ fn bin_op_lt(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
         (Value::Str(lhs), Value::Str(rhs)) => Ok(Value::Bool(*lhs < *rhs)),
         _ => Err(err_bin_op("<", lhs, rhs)),
     }
+}
+
+fn bin_op_le(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
+    match (lhs, rhs) {
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Bool(*lhs <= *rhs)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Bool(*lhs <= *rhs)),
+        (Value::Num(lhs), Value::Int(rhs)) => Ok(Value::Bool(*lhs <= *rhs as f64)),
+        (Value::Int(lhs), Value::Num(rhs)) => Ok(Value::Bool((*lhs as f64) <= *rhs)),
+        (Value::Str(lhs), Value::Str(rhs)) => Ok(Value::Bool(*lhs <= *rhs)),
+        _ => Err(err_bin_op("<=", lhs, rhs)),
+    }
+}
+
+fn bin_op_gt(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
+    match (lhs, rhs) {
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Bool(*lhs > *rhs)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Bool(*lhs > *rhs)),
+        (Value::Num(lhs), Value::Int(rhs)) => Ok(Value::Bool(*lhs > *rhs as f64)),
+        (Value::Int(lhs), Value::Num(rhs)) => Ok(Value::Bool((*lhs as f64) > *rhs)),
+        (Value::Str(lhs), Value::Str(rhs)) => Ok(Value::Bool(*lhs > *rhs)),
+        _ => Err(err_bin_op(">", lhs, rhs)),
+    }
+}
+
+fn bin_op_ge(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
+    match (lhs, rhs) {
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Bool(*lhs >= *rhs)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Bool(*lhs >= *rhs)),
+        (Value::Num(lhs), Value::Int(rhs)) => Ok(Value::Bool(*lhs >= *rhs as f64)),
+        (Value::Int(lhs), Value::Num(rhs)) => Ok(Value::Bool((*lhs as f64) >= *rhs)),
+        (Value::Str(lhs), Value::Str(rhs)) => Ok(Value::Bool(*lhs >= *rhs)),
+        _ => Err(err_bin_op(">=", lhs, rhs)),
+    }
+}
+
+fn bin_op_ee(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
+    // TODO: ECMA-262 compliant equality check
+    match (lhs, rhs) {
+        (Value::Undefined, Value::Undefined) => Ok(Value::Bool(true)),
+        (Value::Null, Value::Null) => Ok(Value::Bool(true)),
+        (Value::Undefined, Value::Null) => Ok(Value::Bool(true)),
+        (Value::Null, Value::Undefined) => Ok(Value::Bool(true)),
+        (Value::Bool(lhs), Value::Bool(rhs)) => Ok(Value::Bool(*lhs == *rhs)),
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Bool(*lhs == *rhs)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Bool(*lhs == *rhs)),
+        (Value::Num(lhs), Value::Int(rhs)) => Ok(Value::Bool(*lhs == *rhs as f64)),
+        (Value::Int(lhs), Value::Num(rhs)) => Ok(Value::Bool((*lhs as f64) >= *rhs)),
+        (Value::Str(lhs), Value::Str(rhs)) => Ok(Value::Bool(*lhs >= *rhs)),
+        _ => Ok(Value::Bool(false)),
+    }
+}
+
+fn bin_op_ne(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
+    bin_op_ee(lhs, rhs).map(|v| Value::Bool(!v.to_bool()))
+}
+
+fn bin_op_eee(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
+    // TODO: ECMA-262 compliant equality check
+    match (lhs, rhs) {
+        (Value::Undefined, Value::Undefined) => Ok(Value::Bool(true)),
+        (Value::Null, Value::Null) => Ok(Value::Bool(true)),
+        (Value::Bool(lhs), Value::Bool(rhs)) => Ok(Value::Bool(*lhs == *rhs)),
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Bool(*lhs == *rhs)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Bool(*lhs == *rhs)),
+        (Value::Num(lhs), Value::Int(rhs)) => Ok(Value::Bool(*lhs == *rhs as f64)),
+        (Value::Int(lhs), Value::Num(rhs)) => Ok(Value::Bool((*lhs as f64) >= *rhs)),
+        (Value::Str(lhs), Value::Str(rhs)) => Ok(Value::Bool(*lhs >= *rhs)),
+        (Value::Array(lhs), Value::Array(rhs)) => Ok(Value::Bool(lhs == rhs)),
+        (Value::Object(lhs), Value::Object(rhs)) => Ok(Value::Bool(lhs == rhs)),
+        (Value::Coro(lhs), Value::Coro(rhs)) => Ok(Value::Bool(lhs == rhs)),
+        _ => Ok(Value::Bool(false)),
+    }
+}
+
+fn bin_op_nee(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
+    bin_op_eee(lhs, rhs).map(|v| Value::Bool(!v.to_bool()))
 }
 
 #[cold]
@@ -351,12 +433,19 @@ impl Vm {
                 OpCode::Jf => {
                     let stack = &mut self.top_mut()?.stack;
                     let cond = stack.pop().expect("Jf needs an argument");
-                    if cond.to_bool() {
+                    if !cond.to_bool() {
                         self.top_mut()?.ip = instruction.arg0 as usize;
                         continue;
                     }
                 }
                 OpCode::Lt => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_lt)?,
+                OpCode::Le => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_le)?,
+                OpCode::Gt => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_gt)?,
+                OpCode::Ge => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_ge)?,
+                OpCode::Ee => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_ee)?,
+                OpCode::Ne => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_ne)?,
+                OpCode::Eee => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_eee)?,
+                OpCode::Nee => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_nee)?,
                 OpCode::Pop => {
                     let stack = &mut self.top_mut()?.stack;
                     stack.resize(stack.len() - instruction.arg0 as usize, Value::default());
