@@ -51,7 +51,7 @@ pub struct Vm {
 
 impl PartialEq for Vm {
     fn eq(&self, other: &Self) -> bool {
-        &self == &other
+        self == other
     }
 }
 

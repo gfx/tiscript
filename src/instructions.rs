@@ -22,11 +22,11 @@ pub enum OpCode {
     Jf,
     /// Pop a value from the stack, compare it with a value at arg0, push true if it's less
     Lt, // <
-    Le, // <=
-    Gt, // >
-    Ge, // >=
-    Ee, // ==
-    Ne, // !=
+    Le,  // <=
+    Gt,  // >
+    Ge,  // >=
+    Ee,  // ==
+    Ne,  // !=
     Eee, // ===
     Nee, // !==
     /// Pop n values from the stack where n is given by arg0

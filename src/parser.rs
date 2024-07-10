@@ -759,7 +759,7 @@ fn type_primitive(i: Span) -> IResult<Span, TypeDecl> {
 fn type_object(input: Span) -> IResult<Span, TypeDecl> {
     // { key: value, "key": "value", ... }
     // almost the same as object literals, but no arbitrary expressions.
-    let(i, _) = space_delimited(delimited(
+    let (i, _) = space_delimited(delimited(
         open_brace,
         many0(delimited(
             multispace0,
