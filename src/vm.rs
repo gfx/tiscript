@@ -51,7 +51,7 @@ pub struct Vm {
 
 impl PartialEq for Vm {
     fn eq(&self, other: &Self) -> bool {
-        self == other
+        std::ptr::eq(self, other)
     }
 }
 
@@ -202,7 +202,7 @@ fn bin_op_nee(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
 }
 
 #[cold]
-fn stack_overflow(ip: usize, instruction: Instruction, stack: &Vec<Value>) -> ! {
+fn stack_overflow(ip: usize, instruction: Instruction, stack: &[Value]) -> ! {
     panic!(
         "[BUG] Stack overflow in `[{}] {:?}` where stack.len() is {} (see --disasm to to look into the instruction)",
         ip, instruction, stack.len()
