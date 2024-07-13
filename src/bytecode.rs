@@ -1,11 +1,9 @@
 use std::{any::Any, collections::HashMap, error::Error, io::Write, rc::Rc};
 
-use indexmap::IndexMap;
-
 use crate::{
     ast::{Span, TypeDecl},
     instructions::{Instruction, OpCode},
-    value::Value,
+    value::{Value, Map, Array},
 };
 
 pub struct FnByteCode {
@@ -356,7 +354,7 @@ fn binary_fn<'a>(f: fn(f64, f64) -> f64) -> FnDecl<'a> {
 // is transformed into (just like in template strings):
 // Array.spread%([[1, 2, 3], [4, 5, 6]], [[7, 8, 9], [10, 11, 12]])
 fn array_spread_fn(_: &dyn Any, args: &[Value]) -> Result<Value, Box<dyn Error>> {
-    let mut result: Vec<Value> = Vec::new();
+    let mut result: Array = Default::default();
 
     let mut args = args.iter();
     let subarrays = args
@@ -393,7 +391,7 @@ fn object_from_entries_fn(_: &dyn Any, args: &[Value]) -> Result<Value, Box<dyn 
         .next()
         .expect("undefined is not iterable")
         .must_be_array()?;
-    let mut object = IndexMap::with_capacity(entries.len());
+    let mut object = Map::with_capacity(entries.len());
     for arg in entries {
         match arg {
             Value::Array(pair) => {

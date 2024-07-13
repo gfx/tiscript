@@ -1,8 +1,11 @@
-use std::{cell::RefCell, error::Error, fmt::Display, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, error::Error, fmt::Display, rc::Rc};
 
 use indexmap::IndexMap;
 
 use crate::vm::Vm;
+
+pub type Map = IndexMap<String, Value>;
+pub type Array = Vec<Value>;
 
 #[repr(u8)]
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -27,23 +30,94 @@ pub enum Value {
     Num(f64),
     Int(i64),
     Str(String),
-    Array(Vec<Value>),
-    Object(IndexMap<String, Value>),
+    Array(Array),
+    Object(Map),
     Coro(Rc<RefCell<Vm>>),
 }
 
 impl PartialEq for Value {
     fn eq(&self, other: &Self) -> bool {
-        use Value::*;
         match (self, other) {
-            (Undefined, Undefined) => true,
-            (Null, Null) => true,
-            (Bool(lhs), Bool(rhs)) => lhs == rhs,
-            (Num(lhs), Num(rhs)) => lhs == rhs,
-            (Int(lhs), Int(rhs)) => lhs == rhs,
-            (Str(lhs), Str(rhs)) => lhs == rhs,
+            (Value::Undefined, Value::Undefined) => true,
+            (Value::Null, Value::Null) => true,
+            (Value::Bool(lhs), Value::Bool(rhs)) => lhs == rhs,
+            (Value::Num(lhs), Value::Num(rhs)) => lhs == rhs,
+            (Value::Int(lhs), Value::Int(rhs)) => lhs == rhs,
+            (Value::Str(lhs), Value::Str(rhs)) => lhs == rhs,
             _ => false,
         }
+    }
+}
+
+impl From<()> for Value {
+    fn from(_: ()) -> Self {
+        Self::Undefined
+    }
+}
+
+impl<T> From<Option<T>> for Value
+where
+    T: Into<Value>,
+{
+    fn from(value: Option<T>) -> Self {
+        match value {
+            Some(value) => value.into(),
+            None => Self::Null,
+        }
+    }
+}
+
+impl From<bool> for Value {
+    fn from(value: bool) -> Self {
+        Self::Bool(value)
+    }
+}
+
+impl From<f64> for Value {
+    fn from(value: f64) -> Self {
+        Self::Num(value)
+    }
+}
+
+impl From<i64> for Value {
+    fn from(value: i64) -> Self {
+        Self::Int(value)
+    }
+}
+
+impl From<String> for Value {
+    fn from(value: String) -> Self {
+        Self::Str(value)
+    }
+}
+
+impl From<&'_ str> for Value {
+    fn from(value: &str) -> Self {
+        Self::Str(value.to_string())
+    }
+}
+
+impl From<HashMap<String, Value>> for Value {
+    fn from(f: HashMap<String, Value>) -> Self {
+        Value::Object(Map::from_iter(f.into_iter()))
+    }
+}
+
+impl From<Map> for Value {
+    fn from(f: Map) -> Self {
+        Value::Object(f)
+    }
+}
+
+impl From<Array> for Value {
+    fn from(f: Array) -> Self {
+        Value::Array(f)
+    }
+}
+
+impl From<&[Value]> for Value {
+    fn from(f: &[Value]) -> Self {
+        Value::Array(f.into())
     }
 }
 
@@ -153,14 +227,14 @@ impl Value {
         }
     }
 
-    pub fn must_be_array(&self) -> Result<&Vec<Value>, Box<dyn Error>> {
+    pub fn must_be_array(&self) -> Result<&Array, Box<dyn Error>> {
         match self {
             Value::Array(ary) => Ok(ary),
             _ => Err(format!("Expected object, found {:?}", self).into()),
         }
     }
 
-    pub fn must_be_object(&self) -> Result<&IndexMap<String, Value>, Box<dyn Error>> {
+    pub fn must_be_object(&self) -> Result<&Map, Box<dyn Error>> {
         match self {
             Value::Object(map) => Ok(map),
             _ => Err(format!("Expected object, found {:?}", self).into()),

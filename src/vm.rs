@@ -73,87 +73,87 @@ fn err_bin_op(op: &str, lhs: &Value, rhs: &Value) -> Box<dyn Error> {
 
 fn bin_op_add(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
     match (lhs, rhs) {
-        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Num(lhs + rhs)),
-        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Int(lhs + rhs)),
-        (Value::Str(lhs), Value::Str(rhs)) => Ok(Value::Str(lhs.clone() + rhs)),
-        (Value::Str(lhs), rhs) => Ok(Value::Str(lhs.clone() + &rhs.to_string())),
-        (lhs, Value::Str(rhs)) => Ok(Value::Str(lhs.to_string() + rhs)),
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::from(lhs + rhs)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::from(lhs + rhs)),
+        (Value::Str(lhs), Value::Str(rhs)) => Ok(Value::from(lhs.clone() + rhs)),
+        (Value::Str(lhs), rhs) => Ok(Value::from(lhs.clone() + &rhs.to_string())),
+        (lhs, Value::Str(rhs)) => Ok(Value::from(lhs.to_string() + rhs)),
         _ => Err(err_bin_op("+", lhs, rhs)),
     }
 }
 
 fn bin_op_sub(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
     match (lhs, rhs) {
-        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Num(lhs - rhs)),
-        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Int(lhs - rhs)),
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::from(lhs - rhs)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::from(lhs - rhs)),
         _ => Err(err_bin_op("-", lhs, rhs)),
     }
 }
 
 fn bin_op_mul(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
     match (lhs, rhs) {
-        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Num(lhs * rhs)),
-        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Int(lhs * rhs)),
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::from(lhs * rhs)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::from(lhs * rhs)),
         _ => Err(err_bin_op("*", lhs, rhs)),
     }
 }
 
 fn bin_op_div(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
     match (lhs, rhs) {
-        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Num(lhs / rhs)),
-        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Int(lhs / rhs)),
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::from(lhs / rhs)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::from(lhs / rhs)),
         _ => Err(err_bin_op("/", lhs, rhs)),
     }
 }
 
 fn bin_op_mod(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
     match (lhs, rhs) {
-        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Num(lhs % rhs)),
-        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Int(lhs % rhs)),
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::from(lhs % rhs)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::from(lhs % rhs)),
         _ => Err(err_bin_op("%", lhs, rhs)),
     }
 }
 
 fn bin_op_lt(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
     match (lhs, rhs) {
-        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Bool(*lhs < *rhs)),
-        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Bool(*lhs < *rhs)),
-        (Value::Num(lhs), Value::Int(rhs)) => Ok(Value::Bool(*lhs < *rhs as f64)),
-        (Value::Int(lhs), Value::Num(rhs)) => Ok(Value::Bool((*lhs as f64) < *rhs)),
-        (Value::Str(lhs), Value::Str(rhs)) => Ok(Value::Bool(*lhs < *rhs)),
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::from(*lhs < *rhs)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::from(*lhs < *rhs)),
+        (Value::Num(lhs), Value::Int(rhs)) => Ok(Value::from(*lhs < *rhs as f64)),
+        (Value::Int(lhs), Value::Num(rhs)) => Ok(Value::from((*lhs as f64) < *rhs)),
+        (Value::Str(lhs), Value::Str(rhs)) => Ok(Value::from(*lhs < *rhs)),
         _ => Err(err_bin_op("<", lhs, rhs)),
     }
 }
 
 fn bin_op_le(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
     match (lhs, rhs) {
-        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Bool(*lhs <= *rhs)),
-        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Bool(*lhs <= *rhs)),
-        (Value::Num(lhs), Value::Int(rhs)) => Ok(Value::Bool(*lhs <= *rhs as f64)),
-        (Value::Int(lhs), Value::Num(rhs)) => Ok(Value::Bool((*lhs as f64) <= *rhs)),
-        (Value::Str(lhs), Value::Str(rhs)) => Ok(Value::Bool(*lhs <= *rhs)),
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::from(*lhs <= *rhs)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::from(*lhs <= *rhs)),
+        (Value::Num(lhs), Value::Int(rhs)) => Ok(Value::from(*lhs <= *rhs as f64)),
+        (Value::Int(lhs), Value::Num(rhs)) => Ok(Value::from((*lhs as f64) <= *rhs)),
+        (Value::Str(lhs), Value::Str(rhs)) => Ok(Value::from(*lhs <= *rhs)),
         _ => Err(err_bin_op("<=", lhs, rhs)),
     }
 }
 
 fn bin_op_gt(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
     match (lhs, rhs) {
-        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Bool(*lhs > *rhs)),
-        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Bool(*lhs > *rhs)),
-        (Value::Num(lhs), Value::Int(rhs)) => Ok(Value::Bool(*lhs > *rhs as f64)),
-        (Value::Int(lhs), Value::Num(rhs)) => Ok(Value::Bool((*lhs as f64) > *rhs)),
-        (Value::Str(lhs), Value::Str(rhs)) => Ok(Value::Bool(*lhs > *rhs)),
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::from(*lhs > *rhs)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::from(*lhs > *rhs)),
+        (Value::Num(lhs), Value::Int(rhs)) => Ok(Value::from(*lhs > *rhs as f64)),
+        (Value::Int(lhs), Value::Num(rhs)) => Ok(Value::from((*lhs as f64) > *rhs)),
+        (Value::Str(lhs), Value::Str(rhs)) => Ok(Value::from(*lhs > *rhs)),
         _ => Err(err_bin_op(">", lhs, rhs)),
     }
 }
 
 fn bin_op_ge(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
     match (lhs, rhs) {
-        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Bool(*lhs >= *rhs)),
-        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Bool(*lhs >= *rhs)),
-        (Value::Num(lhs), Value::Int(rhs)) => Ok(Value::Bool(*lhs >= *rhs as f64)),
-        (Value::Int(lhs), Value::Num(rhs)) => Ok(Value::Bool((*lhs as f64) >= *rhs)),
-        (Value::Str(lhs), Value::Str(rhs)) => Ok(Value::Bool(*lhs >= *rhs)),
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::from(*lhs >= *rhs)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::from(*lhs >= *rhs)),
+        (Value::Num(lhs), Value::Int(rhs)) => Ok(Value::from(*lhs >= *rhs as f64)),
+        (Value::Int(lhs), Value::Num(rhs)) => Ok(Value::from((*lhs as f64) >= *rhs)),
+        (Value::Str(lhs), Value::Str(rhs)) => Ok(Value::from(*lhs >= *rhs)),
         _ => Err(err_bin_op(">=", lhs, rhs)),
     }
 }
@@ -161,44 +161,44 @@ fn bin_op_ge(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
 fn bin_op_ee(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
     // TODO: ECMA-262 compliant equality check
     match (lhs, rhs) {
-        (Value::Undefined, Value::Undefined) => Ok(Value::Bool(true)),
-        (Value::Null, Value::Null) => Ok(Value::Bool(true)),
-        (Value::Undefined, Value::Null) => Ok(Value::Bool(true)),
-        (Value::Null, Value::Undefined) => Ok(Value::Bool(true)),
-        (Value::Bool(lhs), Value::Bool(rhs)) => Ok(Value::Bool(*lhs == *rhs)),
-        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Bool(*lhs == *rhs)),
-        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Bool(*lhs == *rhs)),
-        (Value::Num(lhs), Value::Int(rhs)) => Ok(Value::Bool(*lhs == *rhs as f64)),
-        (Value::Int(lhs), Value::Num(rhs)) => Ok(Value::Bool((*lhs as f64) >= *rhs)),
-        (Value::Str(lhs), Value::Str(rhs)) => Ok(Value::Bool(*lhs >= *rhs)),
-        _ => Ok(Value::Bool(false)),
+        (Value::Undefined, Value::Undefined) => Ok(Value::from(true)),
+        (Value::Null, Value::Null) => Ok(Value::from(true)),
+        (Value::Undefined, Value::Null) => Ok(Value::from(true)),
+        (Value::Null, Value::Undefined) => Ok(Value::from(true)),
+        (Value::Bool(lhs), Value::Bool(rhs)) => Ok(Value::from(*lhs == *rhs)),
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::from(*lhs == *rhs)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::from(*lhs == *rhs)),
+        (Value::Num(lhs), Value::Int(rhs)) => Ok(Value::from(*lhs == *rhs as f64)),
+        (Value::Int(lhs), Value::Num(rhs)) => Ok(Value::from((*lhs as f64) >= *rhs)),
+        (Value::Str(lhs), Value::Str(rhs)) => Ok(Value::from(*lhs >= *rhs)),
+        _ => Ok(Value::from(false)),
     }
 }
 
 fn bin_op_ne(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
-    bin_op_ee(lhs, rhs).map(|v| Value::Bool(!v.to_bool()))
+    bin_op_ee(lhs, rhs).map(|v| Value::from(!v.to_bool()))
 }
 
 fn bin_op_eee(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
     // TODO: ECMA-262 compliant equality check
     match (lhs, rhs) {
-        (Value::Undefined, Value::Undefined) => Ok(Value::Bool(true)),
-        (Value::Null, Value::Null) => Ok(Value::Bool(true)),
-        (Value::Bool(lhs), Value::Bool(rhs)) => Ok(Value::Bool(*lhs == *rhs)),
-        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Bool(*lhs == *rhs)),
-        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Bool(*lhs == *rhs)),
-        (Value::Num(lhs), Value::Int(rhs)) => Ok(Value::Bool(*lhs == *rhs as f64)),
-        (Value::Int(lhs), Value::Num(rhs)) => Ok(Value::Bool((*lhs as f64) >= *rhs)),
-        (Value::Str(lhs), Value::Str(rhs)) => Ok(Value::Bool(*lhs >= *rhs)),
-        (Value::Array(lhs), Value::Array(rhs)) => Ok(Value::Bool(lhs == rhs)),
-        (Value::Object(lhs), Value::Object(rhs)) => Ok(Value::Bool(lhs == rhs)),
-        (Value::Coro(lhs), Value::Coro(rhs)) => Ok(Value::Bool(lhs == rhs)),
-        _ => Ok(Value::Bool(false)),
+        (Value::Undefined, Value::Undefined) => Ok(Value::from(true)),
+        (Value::Null, Value::Null) => Ok(Value::from(true)),
+        (Value::Bool(lhs), Value::Bool(rhs)) => Ok(Value::from(*lhs == *rhs)),
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::from(*lhs == *rhs)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::from(*lhs == *rhs)),
+        (Value::Num(lhs), Value::Int(rhs)) => Ok(Value::from(*lhs == *rhs as f64)),
+        (Value::Int(lhs), Value::Num(rhs)) => Ok(Value::from((*lhs as f64) >= *rhs)),
+        (Value::Str(lhs), Value::Str(rhs)) => Ok(Value::from(*lhs >= *rhs)),
+        (Value::Array(lhs), Value::Array(rhs)) => Ok(Value::from(lhs == rhs)),
+        (Value::Object(lhs), Value::Object(rhs)) => Ok(Value::from(lhs == rhs)),
+        (Value::Coro(lhs), Value::Coro(rhs)) => Ok(Value::from(lhs == rhs)),
+        _ => Ok(Value::from(false)),
     }
 }
 
 fn bin_op_nee(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
-    bin_op_eee(lhs, rhs).map(|v| Value::Bool(!v.to_bool()))
+    bin_op_eee(lhs, rhs).map(|v| Value::from(!v.to_bool()))
 }
 
 #[cold]
@@ -307,7 +307,7 @@ impl Vm {
         }
 
         let stack = &mut self.top_mut()?.stack;
-        stack.resize(stack.len() - args - 1, Value::Num(0.));
+        stack.resize(stack.len() - args - 1, Value::default());
         stack.push(res);
         self.top_mut()?.ip += 1;
         Ok(None)
@@ -406,7 +406,7 @@ impl Vm {
                                 let stack = &mut self.top_mut()?.stack;
                                 stack.resize(
                                     stack.len() - instruction.arg0 as usize - 1,
-                                    Value::Num(0.),
+                                    Value::default(),
                                 );
                                 stack.push(Value::Coro(Rc::new(RefCell::new(vm))));
                             } else {
@@ -420,7 +420,7 @@ impl Vm {
                             let stack = &mut self.top_mut()?.stack;
                             stack.resize(
                                 stack.len() - instruction.arg0 as usize - 1,
-                                Value::Num(0.),
+                                Value::default(),
                             );
                             stack.push(res);
                         }
@@ -521,6 +521,7 @@ impl Vm {
         Ok(())
     }
 
+    #[allow(dead_code)]
     fn back_trace(&self) {
         for (i, frame) in self.stack_frames.iter().rev().enumerate() {
             eprintln!("[{}]: {:?}", i, frame.stack);
