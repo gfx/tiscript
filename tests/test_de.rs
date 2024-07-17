@@ -1,27 +1,27 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
-use tiscript::{from_str, from_file};
+use tiscript::{from_file, from_str};
 
 #[test]
 fn test_from_file() -> Result<(), Box<dyn std::error::Error>> {
-  #[derive(Serialize, Deserialize, Debug, PartialEq)]
-  #[serde(rename_all = "camelCase")]
-  struct EditorConfig {
-      tab_size: i32,
-      trim_trailing_whitespace: bool,
-      end_of_line: String,
-      encoding: String,
-  }
+    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    #[serde(rename_all = "camelCase")]
+    struct EditorConfig {
+        tab_size: i32,
+        trim_trailing_whitespace: bool,
+        end_of_line: String,
+        encoding: String,
+    }
 
-  let editor_config: EditorConfig = from_file("./spec/readme.ts")?;
+    let editor_config: EditorConfig = from_file("./spec/readme.ts")?;
 
-  assert_eq!(editor_config.tab_size, 4);
-  assert_eq!(editor_config.trim_trailing_whitespace, true);
-  assert_eq!(editor_config.end_of_line, "\x0a");
-  assert_eq!(editor_config.encoding, "utf-8");
+    assert_eq!(editor_config.tab_size, 4);
+    assert_eq!(editor_config.trim_trailing_whitespace, true);
+    assert_eq!(editor_config.end_of_line, "\x0a");
+    assert_eq!(editor_config.encoding, "utf-8");
 
-  Ok(())
+    Ok(())
 }
 
 #[test]

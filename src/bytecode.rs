@@ -3,7 +3,7 @@ use std::{any::Any, collections::HashMap, error::Error, io::Write, rc::Rc};
 use crate::{
     ast::{Span, TypeDecl},
     instructions::{Instruction, OpCode},
-    value::{Value, Map, Array},
+    value::{Array, Map, Value},
 };
 
 pub struct FnByteCode {

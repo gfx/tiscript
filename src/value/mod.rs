@@ -206,10 +206,7 @@ impl Value {
             Self::Bool(value) => *value as i64,
             Self::Str(value) => value.parse()?,
             _ => {
-                return Err(format!(
-                    "Coercion failed: {:?} cannot be coerced to int",
-                    self
-                ).into())
+                return Err(format!("Coercion failed: {:?} cannot be coerced to int", self).into())
             }
         })
     }
@@ -225,7 +222,8 @@ impl Value {
                 return Err(format!(
                     "Coercion failed: {:?} cannot be coerced to unsigned int",
                     self
-                ).into())
+                )
+                .into())
             }
         })
     }
@@ -239,10 +237,7 @@ impl Value {
             Self::Int(value) => format!("{value}"),
             Self::Str(value) => value.clone(),
             _ => {
-                return Err(format!(
-                    "Coercion failed: {:?} cannot be coerced to str",
-                    self
-                ).into())
+                return Err(format!("Coercion failed: {:?} cannot be coerced to str", self).into())
             }
         })
     }
@@ -287,4 +282,3 @@ impl Value {
         }
     }
 }
-
