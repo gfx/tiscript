@@ -1,6 +1,6 @@
 use std::{path::Path, str::FromStr};
 
-use serde::de::{DeserializeSeed, IntoDeserializer, SeqAccess, Unexpected, Visitor};
+use serde::de::{DeserializeSeed, IntoDeserializer, SeqAccess, Unexpected, Visitor, Deserialize};
 
 use crate::{util::eval, value::{Array, Map, Value}};
 
@@ -83,7 +83,7 @@ impl<'a, 'de> SeqAccess<'de> for SeqDeserializer<'a> {
 
     fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>, Error>
     where
-        T: serde::de::DeserializeSeed<'de>,
+        T: DeserializeSeed<'de>,
     {
         match self.iter.next() {
             Some(value) => seed.deserialize(value.clone()).map(Some), // TODO: clone
@@ -481,18 +481,18 @@ impl<'de> serde::de::Deserializer<'de> for Value {
     }
 }
 
-fn from_value<'de, T>(value: Value) -> Result<T, Box<dyn std::error::Error>>
+pub fn from_value<'de, T>(value: Value) -> Result<T, Box<dyn std::error::Error>>
 where
-    T: serde::de::Deserialize<'de>,
+    T: Deserialize<'de>,
 {
-    let value = tri!(serde::de::Deserialize::deserialize(value));
+    let value = tri!(Deserialize::deserialize(value));
     Ok(value)
 }
 
 impl FromStr for Value {
     type Err = Box<dyn std::error::Error>;
     fn from_str(s: &str) -> Result<Value, Self::Err> {
-        eval(s, Path::new("<eval>"))
+        eval(s, Path::new("<from_str>"))
     }
 }
 
@@ -543,4 +543,40 @@ mod tests {
         assert_eq!(map.bar.get("a"), Some(&"b".to_string()));
         assert_eq!(map.bar.get("x"), Some(&"y".to_string()));
     }
+
+    #[test]
+    fn test_deserialize_option() {
+        #[derive(serde::Deserialize, PartialEq, Debug)]
+        struct Test {
+            foo: Option<String>,
+            bar: Option<String>,
+        }
+
+        let value = Value::from_str(r#"
+            export const foo = "hello";
+        "#).unwrap();
+
+        let map: Test = from_value(value).unwrap();
+        assert_eq!(map.foo, Some("hello".to_string()));
+        assert_eq!(map.bar, None);
+    }
+
+    #[test]
+    fn test_deserialize_option_with_explicit_nullish() {
+        #[derive(serde::Deserialize, PartialEq, Debug)]
+        struct Test {
+            foo: Option<String>,
+            bar: Option<String>,
+        }
+
+        let value = Value::from_str(r#"
+            export const foo = undefined;
+            export const bar = null;
+        "#).unwrap();
+
+        let map: Test = from_value(value).unwrap();
+        assert_eq!(map.foo, None);
+        assert_eq!(map.bar, None);
+    }
+
 }
