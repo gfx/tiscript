@@ -101,7 +101,7 @@ impl From<&'_ str> for Value {
 
 impl From<HashMap<String, Value>> for Value {
     fn from(f: HashMap<String, Value>) -> Self {
-        Value::Object(Map::from_iter(f.into_iter()))
+        Value::Object(Map::from_iter(f))
     }
 }
 

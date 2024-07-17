@@ -1,8 +1,11 @@
 use std::{path::Path, str::FromStr};
 
-use serde::de::{DeserializeSeed, IntoDeserializer, SeqAccess, Unexpected, Visitor, Deserialize};
+use serde::de::{Deserialize, DeserializeSeed, IntoDeserializer, SeqAccess, Unexpected, Visitor};
 
-use crate::{util::eval, value::{Array, Map, Value}};
+use crate::{
+    util::eval,
+    value::{Array, Map, Value},
+};
 
 macro_rules! tri {
     ($e:expr $(,)?) => {
@@ -73,7 +76,7 @@ struct SeqDeserializer<'a> {
 }
 
 impl<'a> SeqDeserializer<'a> {
-    fn new(vec: &'a Vec<Value>) -> Self {
+    fn new(vec: &'a [Value]) -> Self {
         SeqDeserializer { iter: vec.iter() }
     }
 }
@@ -330,7 +333,7 @@ impl<'de> serde::de::Deserializer<'de> for Value {
     where
         V: Visitor<'de>,
     {
-        visitor.visit_u64(self.coerce_uint()? as u64)
+        visitor.visit_u64(self.coerce_uint()?)
     }
 
     fn deserialize_f32<V>(self, visitor: V) -> Result<V::Value, Self::Error>
@@ -512,12 +515,15 @@ mod tests {
             bax: i64,
         }
 
-        let value = Value::from_str(r#"
+        let value = Value::from_str(
+            r#"
             export const foo = "hello";
             export const bar = true;
             export const baz = 3.14;
             export const bax = 42;
-        "#).unwrap();
+        "#,
+        )
+        .unwrap();
         let map: Test = from_value(value).unwrap();
         assert_eq!(map.foo, "hello");
         assert_eq!(map.bar, true);
@@ -533,10 +539,13 @@ mod tests {
             bar: HashMap<String, String>,
         }
 
-        let value = Value::from_str(r#"
+        let value = Value::from_str(
+            r#"
             export const foo = ["hello", "world"];
             export const bar = { "a": "b", "x": "y" };
-        "#).unwrap();
+        "#,
+        )
+        .unwrap();
 
         let map: Test = from_value(value).unwrap();
         assert_eq!(map.foo, vec!["hello", "world"]);
@@ -552,9 +561,12 @@ mod tests {
             bar: Option<String>,
         }
 
-        let value = Value::from_str(r#"
+        let value = Value::from_str(
+            r#"
             export const foo = "hello";
-        "#).unwrap();
+        "#,
+        )
+        .unwrap();
 
         let map: Test = from_value(value).unwrap();
         assert_eq!(map.foo, Some("hello".to_string()));
@@ -569,14 +581,16 @@ mod tests {
             bar: Option<String>,
         }
 
-        let value = Value::from_str(r#"
+        let value = Value::from_str(
+            r#"
             export const foo = undefined;
             export const bar = null;
-        "#).unwrap();
+        "#,
+        )
+        .unwrap();
 
         let map: Test = from_value(value).unwrap();
         assert_eq!(map.foo, None);
         assert_eq!(map.bar, None);
     }
-
 }
