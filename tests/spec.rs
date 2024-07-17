@@ -10,8 +10,8 @@ use tiscript::util::eval;
 struct Spec {
     filename: String,
     is_err: bool,
-    expected_stdout: String,
-    expected_stderr: String,
+    expected_stdout: Option<String>,
+    expected_stderr: Option<String>,
 }
 
 fn run_tiscript2json(filename: &String) -> Result<String, Box<dyn std::error::Error>> {
@@ -37,18 +37,18 @@ fn collect_specs(spec_dir: &Path) -> Vec<Spec> {
         if path.is_file() {
             let filename = path.file_name().unwrap().to_str().unwrap();
             if filename.ends_with(".ts") || filename.ends_with(".mts") {
-                let mut expected_stdout = String::new(); // $filename.stdout
-                let mut expected_stderr = String::new(); // $filename.stderr
+                let mut expected_stdout: Option<String> = None; // $filename.stdout
+                let mut expected_stderr: Option<String> = None; // $filename.stderr
 
                 if let Ok(expected) =
                     fs::read_to_string(spec_dir.join(format!("{}.stdout", filename)))
                 {
-                    expected_stdout = expected;
+                    expected_stdout = Some(expected);
                 }
                 if let Ok(expected) =
                     fs::read_to_string(spec_dir.join(format!("{}.stderr", filename)))
                 {
-                    expected_stderr = expected;
+                    expected_stderr = Some(expected);
                 }
                 let is_err = filename.starts_with("err.");
 
@@ -66,7 +66,7 @@ fn collect_specs(spec_dir: &Path) -> Vec<Spec> {
 }
 
 #[test]
-fn test_evaluate_specs_that_should_pass() {
+fn test_evaluate_specs_that_should_pass() -> Result<(), Box<dyn std::error::Error>> {
     let update = std::env::var("UPDATE").is_ok();
 
     let specs = collect_specs(Path::new("spec"));
@@ -75,7 +75,7 @@ fn test_evaluate_specs_that_should_pass() {
         if spec.is_err {
             continue;
         }
-        let source = fs::read_to_string(&spec.filename).unwrap();
+        let source = fs::read_to_string(&spec.filename)?;
         let result = eval(&source, Path::new(&spec.filename));
         let tiscript2json = run_tiscript2json(&spec.filename);
 
@@ -86,30 +86,33 @@ fn test_evaluate_specs_that_should_pass() {
             spec.filename
         );
 
-        let output = serde_json::ser::to_string_pretty(&result.unwrap()).unwrap() + "\n";
+        let output = serde_json::to_string_pretty(&result?)? + "\n";
+        let tiscript2json: serde_json::Value = serde_json::from_str(&tiscript2json?)?;
 
         assert_eq!(
-            output.trim(),
-            tiscript2json.unwrap().trim(),
+            output,
+            serde_json::to_string_pretty(&tiscript2json)? + "\n",
             "output vs tsc in {}",
             spec.filename
         );
 
         if update {
-            fs::write(format!("{}.stdout", spec.filename), output.as_bytes()).unwrap();
+            fs::write(format!("{}.stdout", spec.filename), output.as_bytes())?;
         } else {
             assert_eq!(
-                output.trim(),
-                spec.expected_stdout.trim(),
+                output,
+                spec.expected_stdout.unwrap(),
                 "output vs expected in {}",
                 spec.filename
             );
         }
     }
+
+    Ok(())
 }
 
 #[test]
-fn test_evaluate_specs_that_should_fail() {
+fn test_evaluate_specs_that_should_fail() -> Result<(), Box<dyn std::error::Error>> {
     // UPDATE=1 to update expected files
     let update = std::env::var("UPDATE").is_ok();
 
@@ -119,7 +122,7 @@ fn test_evaluate_specs_that_should_fail() {
         if !spec.is_err {
             continue;
         }
-        let source = fs::read_to_string(&spec.filename).unwrap();
+        let source = fs::read_to_string(&spec.filename)?;
         let result = eval(&source, Path::new(&spec.filename));
         let tiscript2json = run_tiscript2json(&spec.filename);
 
@@ -145,15 +148,16 @@ fn test_evaluate_specs_that_should_fail() {
             fs::write(
                 format!("{}.stderr", spec.filename),
                 err.to_string().as_bytes(),
-            )
-            .unwrap();
+            )?;
         } else {
             assert_eq!(
                 err.to_string().trim(),
-                spec.expected_stderr.trim(),
+                spec.expected_stderr.unwrap().trim(),
                 "output vs expected in {}",
                 spec.filename
             );
         }
     }
+
+    Ok(())
 }

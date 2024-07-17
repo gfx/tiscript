@@ -17,14 +17,10 @@ TiScript definition (it's 100% compatible with TypeScript):
 
 ```typescript
 // editor_config.ts
-const LF = "\x0A";
-
-export const EditorConfig = {
-    tabSize: 4,
-    trimTrailingWhitespace: true,
-    endOfLine: LF,
-    encoding: "utf-8",
-};
+export const tabSize = 4;
+export const trimTrailingWhitespace = true;
+export const endOfLine = "\x0a";
+export const encoding = "utf-8";
 ```
 
 Currently, the only interface is a command called tiscript(1) (or `cargo run` on development).
@@ -37,24 +33,22 @@ the output is:
 
 ```json
 {
-    "editorConfig": {
-        "tabSize": 4,
-        "trimTrailingWhitespace": true,
-        "endOfLine": "\n",
-        "encoding": "utf-8"
-    }
+    "tabSize": 4,
+    "trimTrailingWhitespace": true,
+    "endOfLine": "\n",
+    "encoding": "utf-8"
 }
 ```
 
 ## Rust API
 
+This library implements `serde`'s Deserializer.
+
 ### Synopsis
 
-TBD
-
-<!--
 ```rust
-use tiscript;
+// from file
+use tiscript::from_file;
 
 // integrated to Serde
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -66,12 +60,10 @@ struct EditorConfig {
 }
 
 fn main() {
-    let data = tiscript::load("./editor_config.ts").unwrap();
-    let editorConfig = data.import("EditorConfig");
-
+    let editorConfig: EditorConfig = from_file("./editor_config.ts").unwrap();
     println!("{:?}", editorConfig);
 }
-``` -->
+```
 
 ### Description
 

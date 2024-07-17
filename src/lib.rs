@@ -1,6 +1,7 @@
 pub mod ast;
 pub mod bytecode;
 pub mod compiler;
+pub mod de;
 pub mod instructions;
 pub mod parser;
 pub mod ser;
@@ -8,6 +9,8 @@ pub mod type_checker;
 pub mod util;
 pub mod value;
 pub mod vm;
+
+pub use crate::de::{from_str, from_file};
 
 use std::sync::atomic::AtomicBool;
 

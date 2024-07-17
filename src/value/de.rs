@@ -484,113 +484,16 @@ impl<'de> serde::de::Deserializer<'de> for Value {
     }
 }
 
-pub fn from_value<'de, T>(value: Value) -> Result<T, Box<dyn std::error::Error>>
+pub fn from_value<'de, T>(value: Value) -> Result<T, Error>
 where
     T: Deserialize<'de>,
 {
-    let value = tri!(Deserialize::deserialize(value));
-    Ok(value)
+    Deserialize::deserialize(value)
 }
 
 impl FromStr for Value {
     type Err = Box<dyn std::error::Error>;
     fn from_str(s: &str) -> Result<Value, Self::Err> {
         eval(s, Path::new("<from_str>"))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::collections::HashMap;
-
-    use super::*;
-
-    #[test]
-    fn test_deserialize_scalars() {
-        #[derive(serde::Deserialize, PartialEq, Debug)]
-        struct Test {
-            foo: String,
-            bar: bool,
-            baz: f64,
-            bax: i64,
-        }
-
-        let value = Value::from_str(
-            r#"
-            export const foo = "hello";
-            export const bar = true;
-            export const baz = 3.14;
-            export const bax = 42;
-        "#,
-        )
-        .unwrap();
-        let map: Test = from_value(value).unwrap();
-        assert_eq!(map.foo, "hello");
-        assert_eq!(map.bar, true);
-        assert_eq!(map.baz, 3.14);
-        assert_eq!(map.bax, 42);
-    }
-
-    #[test]
-    fn test_deserialize_objects() {
-        #[derive(serde::Deserialize, PartialEq, Debug)]
-        struct Test {
-            foo: Vec<String>,
-            bar: HashMap<String, String>,
-        }
-
-        let value = Value::from_str(
-            r#"
-            export const foo = ["hello", "world"];
-            export const bar = { "a": "b", "x": "y" };
-        "#,
-        )
-        .unwrap();
-
-        let map: Test = from_value(value).unwrap();
-        assert_eq!(map.foo, vec!["hello", "world"]);
-        assert_eq!(map.bar.get("a"), Some(&"b".to_string()));
-        assert_eq!(map.bar.get("x"), Some(&"y".to_string()));
-    }
-
-    #[test]
-    fn test_deserialize_option() {
-        #[derive(serde::Deserialize, PartialEq, Debug)]
-        struct Test {
-            foo: Option<String>,
-            bar: Option<String>,
-        }
-
-        let value = Value::from_str(
-            r#"
-            export const foo = "hello";
-        "#,
-        )
-        .unwrap();
-
-        let map: Test = from_value(value).unwrap();
-        assert_eq!(map.foo, Some("hello".to_string()));
-        assert_eq!(map.bar, None);
-    }
-
-    #[test]
-    fn test_deserialize_option_with_explicit_nullish() {
-        #[derive(serde::Deserialize, PartialEq, Debug)]
-        struct Test {
-            foo: Option<String>,
-            bar: Option<String>,
-        }
-
-        let value = Value::from_str(
-            r#"
-            export const foo = undefined;
-            export const bar = null;
-        "#,
-        )
-        .unwrap();
-
-        let map: Test = from_value(value).unwrap();
-        assert_eq!(map.foo, None);
-        assert_eq!(map.bar, None);
     }
 }
