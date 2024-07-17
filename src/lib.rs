@@ -1,7 +1,6 @@
 pub mod ast;
 pub mod bytecode;
 pub mod compiler;
-pub mod de;
 pub mod instructions;
 pub mod parser;
 pub mod ser;
