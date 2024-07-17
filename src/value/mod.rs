@@ -4,6 +4,8 @@ use indexmap::IndexMap;
 
 use crate::vm::Vm;
 
+pub mod de;
+
 pub type Map = IndexMap<String, Value>;
 pub type Array = Vec<Value>;
 
@@ -184,30 +186,55 @@ impl Value {
         }
     }
 
-    pub fn coerce_num(&self) -> Result<f64, String> {
+    pub fn coerce_num(&self) -> Result<f64, Box<dyn Error>> {
         Ok(match self {
+            Self::Undefined => f64::NAN,
+            Self::Null => 0.0,
+            Self::Bool(value) => *value as i64 as f64,
             Self::Num(value) => *value,
-            Self::Int(_) => return Err("Cannot convert a BigInt value to a number".to_string()),
+            Self::Int(_) => return Err("Cannot convert a BigInt value to a number".into()),
             Self::Str(value) => value.parse().unwrap_or(f64::NAN),
             _ => f64::NAN,
         })
     }
 
-    pub fn coerce_int(&self) -> Result<i64, String> {
+    pub fn coerce_int(&self) -> Result<i64, Box<dyn Error>> {
         Ok(match self {
+            Self::Null => 0,
             Self::Num(value) => *value as i64,
             Self::Int(value) => *value,
+            Self::Bool(value) => *value as i64,
+            Self::Str(value) => value.parse()?,
             _ => {
                 return Err(format!(
-                    "Coercion failed: {:?} cannot be coerced to bigint",
+                    "Coercion failed: {:?} cannot be coerced to int",
                     self
-                ))
+                ).into())
             }
         })
     }
 
-    pub fn coerce_str(&self) -> Result<String, String> {
+    pub fn coerce_uint(&self) -> Result<u64, Box<dyn Error>> {
         Ok(match self {
+            Self::Null => 0,
+            Self::Num(value) => *value as u64,
+            Self::Int(value) => *value as u64,
+            Self::Bool(value) => *value as u64,
+            Self::Str(value) => value.parse()?,
+            _ => {
+                return Err(format!(
+                    "Coercion failed: {:?} cannot be coerced to unsigned int",
+                    self
+                ).into())
+            }
+        })
+    }
+
+    pub fn coerce_str(&self) -> Result<String, Box<dyn Error>> {
+        Ok(match self {
+            Self::Undefined => "undefined".into(),
+            Self::Null => "null".into(),
+            Self::Bool(value) => format!("{value}"),
             Self::Num(value) => format!("{value}"),
             Self::Int(value) => format!("{value}"),
             Self::Str(value) => value.clone(),
@@ -215,9 +242,16 @@ impl Value {
                 return Err(format!(
                     "Coercion failed: {:?} cannot be coerced to str",
                     self
-                ))
+                ).into())
             }
         })
+    }
+
+    pub fn must_be_unit(&self) -> Result<(), Box<dyn Error>> {
+        match self {
+            Value::Undefined | Value::Null => Ok(()),
+            _ => Err(format!("Expected undefined or null, found {:?}", self).into()),
+        }
     }
 
     pub fn must_be_str(&self) -> Result<&str, Box<dyn Error>> {

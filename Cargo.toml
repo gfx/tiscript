@@ -11,7 +11,7 @@ nom_locate = { version = "4.2" }
 memchr = { version = "2.7", default-features = false }
 bytecount = { version = "0.6" }
 serde_json = { version = "1.0", features = ["preserve_order"] }
-serde = { version = "1.0" }
+serde = { version = "1.0", features = ["derive"] }
 indexmap = { version = "2.2" }
 
 [dev-dependencies]
