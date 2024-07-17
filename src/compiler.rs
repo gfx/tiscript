@@ -19,7 +19,7 @@ struct InstPtr(usize);
 enum Target {
     #[default]
     Temp,
-    Lit(usize),
+    Lit,
     Local(String),
 }
 
@@ -91,7 +91,7 @@ impl Compiler {
 
     fn add_load_literal_inst(&mut self, lit: u8) -> InstPtr {
         let inst = self.add_inst(OpCode::LoadLit, lit);
-        self.target_stack.push(Target::Lit(lit as usize));
+        self.target_stack.push(Target::Lit);
         inst
     }
 
