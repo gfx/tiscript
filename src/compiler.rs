@@ -331,7 +331,7 @@ impl Compiler {
                     let ex = self.compile_expr(ex)?;
                     let (stk_local, _) = self
                         .target_stack
-                        .iter_mut()
+                        .iter()
                         .enumerate()
                         .find(|(_, tgt)| {
                             if let Target::Local(tgt) = tgt {
