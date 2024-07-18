@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -xe -o pipefail
+
+# use homebrew-installed LLVM on macOS
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  PATH="$(brew --prefix llvm)/bin:$PATH"
+  export PATH
+fi
+
+cargo clean
+rm -rf .cover
+RUSTFLAGS="-C instrument-coverage"  LLVM_PROFILE_FILE="./.cover/%m_%p.profraw" cargo test
+
+llvm-profdata merge -sparse .cover/*.profraw -o .cover/coverage.profdata
+llvm-cov report --show-region-summary=0 --instr-profile .cover/coverage.profdata target/debug/tiscript --sources src
