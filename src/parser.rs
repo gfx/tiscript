@@ -153,10 +153,11 @@ fn identifier(input: Span) -> IResult<Span, Span> {
     ))(input)
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 enum StrFragment<'a> {
     Literal(Span<'a>),
     EscapedChar(char),
+    Interpolation(Expression<'a>),
 }
 
 fn parse_unicode(input: Span) -> IResult<Span, char> {
@@ -200,6 +201,14 @@ fn parse_escaped_char(input: Span<'_>) -> IResult<Span<'_>, char> {
     )(input)
 }
 
+fn parse_interpolation(input: Span<'_>) -> IResult<Span<'_>, Expression> {
+    let (i, _) = char('$')(input)?;
+    let (i, _) = char('{')(i)?;
+    let (i, ex) = expr(i)?;
+    let (i, _) = char('}')(i)?;
+    Ok((i, ex))
+}
+
 fn parse_dq_literal(input: Span<'_>) -> IResult<Span, Span> {
     let not_quote_slash = is_not("\"\\");
     verify(not_quote_slash, |s: &Span| !s.is_empty())(input)
@@ -225,7 +234,7 @@ fn parse_sq_fragment(input: Span<'_>) -> IResult<Span<'_>, StrFragment<'_>> {
 }
 
 fn parse_tmpl_literal(input: Span<'_>) -> IResult<Span, Span> {
-    let not_quote_slash = is_not("`\\");
+    let not_quote_slash = is_not("`\\$");
     verify(not_quote_slash, |s: &Span| !s.is_empty())(input)
 }
 
@@ -233,6 +242,7 @@ fn parse_tmpl_fragment(input: Span<'_>) -> IResult<Span<'_>, StrFragment<'_>> {
     alt((
         map(parse_tmpl_literal, StrFragment::Literal),
         map(parse_escaped_char, StrFragment::EscapedChar),
+        map(parse_interpolation, StrFragment::Interpolation),
     ))(input)
 }
 
@@ -242,6 +252,7 @@ fn dq_str_literal(i: Span) -> IResult<Span, Expression> {
         match fragment {
             StrFragment::Literal(s) => string.push_str(s.fragment()),
             StrFragment::EscapedChar(c) => string.push(c),
+            _ => unreachable!(),
         }
         string
     });
@@ -256,6 +267,7 @@ fn sq_str_literal(i: Span) -> IResult<Span, Expression> {
         match fragment {
             StrFragment::Literal(s) => string.push_str(s.fragment()),
             StrFragment::EscapedChar(c) => string.push(c),
+            _ => unreachable!(),
         }
         string
     });
@@ -264,17 +276,38 @@ fn sq_str_literal(i: Span) -> IResult<Span, Expression> {
     Ok((r, Expression::new(ExprEnum::StrLiteral(val), i)))
 }
 
+// template literals
 fn tmpl_str_literal(i: Span) -> IResult<Span, Expression> {
-    let build_string = fold_many0(parse_tmpl_fragment, String::new, |mut string, fragment| {
-        match fragment {
-            StrFragment::Literal(s) => string.push_str(s.fragment()),
-            StrFragment::EscapedChar(c) => string.push(c),
-        }
-        string
-    });
+    // transform `foo ${expr1} bar ${expr2}` into `foo ` + expr1 + ` bar ` + expr2
+    let build_tmpl = fold_many0(
+        parse_tmpl_fragment,
+        || Expression::new(ExprEnum::StrLiteral("".into()), i),
+        |lhs, fragment| match fragment {
+            StrFragment::Literal(s) => Expression::new(
+                ExprEnum::Add(
+                    Box::new(lhs),
+                    Box::new(Expression::new(
+                        ExprEnum::StrLiteral(s.fragment().to_string()),
+                        i,
+                    )),
+                ),
+                i,
+            ),
+            StrFragment::EscapedChar(c) => Expression::new(
+                ExprEnum::Add(
+                    Box::new(lhs),
+                    Box::new(Expression::new(ExprEnum::StrLiteral(c.to_string()), i)),
+                ),
+                i,
+            ),
+            StrFragment::Interpolation(rhs) => {
+                Expression::new(ExprEnum::Add(Box::new(lhs), Box::new(rhs)), i)
+            }
+        },
+    );
 
-    let (r, val) = delimited(char('`'), build_string, char('`'))(i)?;
-    Ok((r, Expression::new(ExprEnum::StrLiteral(val), i)))
+    let (r, expr) = delimited(char('`'), build_tmpl, char('`'))(i)?;
+    Ok((r, expr))
 }
 
 fn num_literal(input: Span) -> IResult<Span, Expression> {
@@ -961,6 +994,24 @@ mod tests {
         let input = Span::new("'abc'");
         let (_r, ex) = sq_str_literal(input).unwrap();
         assert_eq!(ex.expr, ExprEnum::StrLiteral("abc".to_string()));
+    }
+
+    #[test]
+    fn test_parse_interpolation1() {
+        let input = Span::new("${1 - 2}");
+        let (_r, ex) = parse_interpolation(input).unwrap();
+        assert!(
+            matches!(ex.expr, ExprEnum::Sub(..)),
+        );
+    }
+
+    #[test]
+    fn test_parse_interpolation2() {
+        let input = Span::new("${hello}");
+        let (_r, ex) = parse_interpolation(input).unwrap();
+        assert!(
+            matches!(ex.expr, ExprEnum::Ident(..)),
+        );
     }
 
     #[test]

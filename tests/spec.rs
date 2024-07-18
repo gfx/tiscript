@@ -101,7 +101,7 @@ fn test_evaluate_specs_that_should_pass() -> Result<(), Box<dyn std::error::Erro
         } else {
             assert_eq!(
                 output,
-                spec.expected_stdout.unwrap(),
+                spec.expected_stdout.unwrap_or_default(),
                 "output vs expected in {}",
                 spec.filename
             );
@@ -152,7 +152,7 @@ fn test_evaluate_specs_that_should_fail() -> Result<(), Box<dyn std::error::Erro
         } else {
             assert_eq!(
                 err.to_string().trim(),
-                spec.expected_stderr.unwrap().trim(),
+                spec.expected_stderr.unwrap_or_default().trim(),
                 "output vs expected in {}",
                 spec.filename
             );
