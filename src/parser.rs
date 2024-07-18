@@ -1000,18 +1000,14 @@ mod tests {
     fn test_parse_interpolation1() {
         let input = Span::new("${1 - 2}");
         let (_r, ex) = parse_interpolation(input).unwrap();
-        assert!(
-            matches!(ex.expr, ExprEnum::Sub(..)),
-        );
+        assert!(matches!(ex.expr, ExprEnum::Sub(..)),);
     }
 
     #[test]
     fn test_parse_interpolation2() {
         let input = Span::new("${hello}");
         let (_r, ex) = parse_interpolation(input).unwrap();
-        assert!(
-            matches!(ex.expr, ExprEnum::Ident(..)),
-        );
+        assert!(matches!(ex.expr, ExprEnum::Ident(..)),);
     }
 
     #[test]
