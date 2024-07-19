@@ -17,9 +17,11 @@ TiScript definition (it's 100% compatible with TypeScript):
 
 ```typescript
 // editor_config.ts
+const LF = "\x0A";
+
 export const tabSize = 4;
 export const trimTrailingWhitespace = true;
-export const endOfLine = "\x0a";
+export const endOfLine = LF;
 export const encoding = "utf-8";
 ```
 
