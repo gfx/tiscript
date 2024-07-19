@@ -86,8 +86,8 @@ This is a list of features in ECMA-262 that are planned or implemented:
 * [x] `null` literals
 * [x] `boolean` literals
 * [x] `number` literals
-* [ ] `string` literals
-* [ ] [WIP] template `string` literals
+* [x] `string` literals
+* [x] template `string` literals
 * [ ] tagged template `string` literals
 * [x] `bigint` literals (actually 64-bit int)
 * [x] array literals

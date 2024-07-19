@@ -1,3 +1,4 @@
 {
-  "str": "hello world"
+  "tmpl1": "hello world",
+  "tmpl2": "\nhello\nworld\n"
 }
