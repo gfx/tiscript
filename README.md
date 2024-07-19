@@ -153,6 +153,7 @@ This is a list of features that won't be implemented:
 * `var` declaration
 * `eval` function
 * `new Function()`
+* `RegExp` and regular expression operators
 * Most of runtime (e.g. typed arrays)
 * `for-in` loop
 * `async` and `await`
