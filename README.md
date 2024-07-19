@@ -44,7 +44,7 @@ the output is:
 
 ## Rust API
 
-This library implements `serde`'s Deserializer.
+This library implements [serde](https://serde.rs/)'s Deserializer.
 
 ### Synopsis
 
@@ -209,14 +209,15 @@ If you'd like to develop this project, run `UPDATE=1 cargo test` to automaticall
 
 ## Similar Works
 
-* jsonnet https://jsonnet.org/
-* tyson https://github.com/jetify-com/tyson
+* JSON https://www.json.org/
+* Jsonnet https://jsonnet.org/
+* TySON https://github.com/jetify-com/tyson
 
 ## Authors
 
 FUJI, Goro (gfx).
 
-This project is based on https://github.com/msakuta/ruscal, where much of the code comes from.
+This project a fork of https://github.com/msakuta/ruscal, and thus much of the code comes from it.
 
 ## License
 

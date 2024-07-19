@@ -7,6 +7,7 @@ use crate::{
     value::{de::from_value, Value},
 };
 
+/// Evaluate the given source code and deserialize it into a Rust deserializable object.
 pub fn from_str<'de, T>(source: &str) -> Result<T, Box<dyn std::error::Error>>
 where
     T: Deserialize<'de>,
@@ -16,6 +17,7 @@ where
     Ok(object)
 }
 
+/// Evaluate the given source file and deserialize it into a Rust deserializable object.
 pub fn from_file<'de, T>(source_file: &str) -> Result<T, Box<dyn std::error::Error>>
 where
     T: Deserialize<'de>,
@@ -23,6 +25,7 @@ where
     from_path(Path::new(source_file))
 }
 
+/// Evaluate the given source file and deserialize it into a Rust deserializable object.
 pub fn from_path<'de, T>(source_file: &Path) -> Result<T, Box<dyn std::error::Error>>
 where
     T: Deserialize<'de>,
