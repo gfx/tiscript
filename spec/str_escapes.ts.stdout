@@ -5,5 +5,8 @@
   "d": "foo\nbar",
   "e": "foo\rbar",
   "f": "foo\\bar",
-  "g": "foo'bar"
+  "g": "foo'bar",
+  "h": "foo\"bar",
+  "i": "foo😀bar",
+  "j": "foo a bar"
 }

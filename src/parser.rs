@@ -167,9 +167,13 @@ enum StrFragment<'a> {
 }
 
 fn parse_unicode(input: Span) -> IResult<Span, char> {
-    let parse_hex = take_while_m_n(1, 6, |c: char| c.is_ascii_hexdigit());
+    let parse_hex1_6 = take_while_m_n(1, 6, |c: char| c.is_ascii_hexdigit());
+    let parse_hex4 = take_while_m_n(4, 4, |c: char| c.is_ascii_hexdigit());
 
-    let parse_delimited_hex = preceded(char('u'), delimited(char('{'), parse_hex, char('}')));
+    let parse_delimited_hex = preceded(
+        char('u'),
+        alt((delimited(char('{'), parse_hex1_6, char('}')), parse_hex4)),
+    );
 
     let parse_u32 = map_res(parse_delimited_hex, move |hex: Span| {
         u32::from_str_radix(hex.fragment(), 16)
