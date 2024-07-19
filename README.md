@@ -92,6 +92,7 @@ This is a list of features in ECMA-262 that are planned or implemented:
 * [x] `bigint` literals (actually 64-bit int)
 * [x] array literals
 * [x] object literals
+* [ ] `typeof` operator
 * [ ] [WIP] arithmetic operators (`+`, `-`, `*`, `/`, `%`, `**`)
 * [x] bitwise operators (`~`, `&`, `|`, `^`, `<<`, `>>`, `>>>`)
 * [x] comparison operators (`==`, `!=`, `===`, `!==`, `<`, `>`, `<=`, `>=`)
@@ -143,6 +144,7 @@ This is a list of features in TypeScript that are planned or implemented:
 * [ ] type guards
 * [ ] `interface` statement
 * [ ] `type` statement
+* [ ] `typeof` operator in type expressions
 * [ ] generics
 * [ ] null-assertion operator (trailing `!`)
 
