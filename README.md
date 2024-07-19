@@ -117,6 +117,7 @@ This is a list of features in ECMA-262 that are planned or implemented:
 * [ ] function as a first-class object
 * [ ] generator function (`function*`)
 * [ ] limited recursive calls of functions
+* [ ] optional semicolons (ASI)
 * [ ] static `import`
 * [ ] dynamic `import`
 * [x] `Math` class methods
@@ -125,7 +126,7 @@ This is a list of features in ECMA-262 that are planned or implemented:
 * [ ] `String` instance methods
 * [ ] `Number` class methods
 * [ ] `Number` instance methods
-* [ ] optional semicolons (ASI)
+* [ ] `Intl` / ECMA-402
 
 This is a list of features in TypeScript that are planned or implemented:
 
