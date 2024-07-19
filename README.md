@@ -77,7 +77,7 @@ This is a list of features in ECMA-262 that are planned or implemented:
 
 * [x] shebang
 * [x] line and block comments
-* [x] [WIP] `export` (there are bugs. see `tests_fail` directory)
+* [x] `export` (there are bugs. see `tests_fail` directory)
 * [x] `export default`
 * [x] `let`
 * [x] `const`
@@ -87,7 +87,7 @@ This is a list of features in ECMA-262 that are planned or implemented:
 * [x] `boolean` literals
 * [x] `number` literals
 * [ ] [WIP] `string` literals
-* [ ] template `string` literals
+* [ ] [WIP] template `string` literals
 * [ ] tagged template `string` literals
 * [x] `bigint` literals (actually 64-bit int)
 * [x] array literals
@@ -132,6 +132,7 @@ This is a list of features in TypeScript that are planned or implemented:
 * [ ] `unknown`
 * [ ] `never`
 * [ ] `as` type assertion
+* [ ] `satisfies` specifier
 * [x] primitive type annotations
 * [ ] literal type annotations
 * [ ] union type annotations
@@ -164,8 +165,11 @@ This is a list of features that won't be implemented:
 * unlimited recursion / loop
 * anything that meets Turing completeness
 
-
 Note that **any features TiScript recognizes, but TypeScript compiler does not** are invalid, but not vice versa. This is because TiScript is a strict subset of TypeScript.
+
+## Development
+
+If you'd like to develop this project, run `UPDATE=1 cargo test` to automatically generates `*.stdout` or `*.stderr` files in `spec/`.
 
 ## Similar Works
 
