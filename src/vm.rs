@@ -158,9 +158,9 @@ fn bin_op_bw_rshift(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
 // a.k.a. Right Shift Zero Fill operator.
 fn bin_op_bw_rshift_u(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
     match (lhs, rhs) {
-        (Value::Num(lhs), Value::Num(rhs)) => {
-            Ok(Value::Num(((*lhs as i32 as u32) >> (*rhs as i32 as u32)) as f64))
-        }
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Num(
+            ((*lhs as i32 as u32) >> (*rhs as i32 as u32)) as f64,
+        )),
         _ => Err(err_bin_op(">>>", lhs, rhs)),
     }
 }
