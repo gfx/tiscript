@@ -15,7 +15,7 @@ This is a work in progress. **The current implementation is MVP** and not intend
 
 TiScript definition (it's 100% compatible with TypeScript):
 
-```typescript
+```ts
 // editor_config.ts
 const LF = "\x0A";
 
@@ -48,8 +48,11 @@ This library implements `serde`'s Deserializer.
 
 ### Synopsis
 
+From a file:
+
 ```rust
-// from file
+use serde::{Deserialize, Serialize};
+
 use tiscript::from_file;
 
 // integrated to Serde
@@ -63,6 +66,35 @@ struct EditorConfig {
 
 fn main() {
     let editorConfig: EditorConfig = from_file("./editor_config.ts").unwrap();
+    println!("{:?}", editorConfig);
+}
+```
+
+From an inline code:
+
+```rust
+use serde::{Deserialize, Serialize};
+
+use tiscript::from_str;
+
+// integrated to Serde
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+struct EditorConfig {
+    tabSize: i32,
+    trimTrailingWhitespace: bool,
+    endOfLine: String,
+    encoding: String,
+}
+
+fn main() {
+    let editorConfig: EditorConfig = from_file(r#"
+        const LF = "\x0A";
+
+        export const tabSize = 4;
+        export const trimTrailingWhitespace = true;
+        export const endOfLine = LF;
+        export const encoding = "utf-8";
+    "#).unwrap();
     println!("{:?}", editorConfig);
 }
 ```
