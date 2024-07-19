@@ -426,7 +426,7 @@ impl Compiler {
                     match stmts[0] {
                         Statement::VarDef { name, .. } => {
                             let name_id = self.add_literal(Value::Str(name.to_string()));
-                            self.add_load_literal_inst(name_id);
+                            self.add_inst(OpCode::LoadLit, name_id);
                         }
                         Statement::FnDef { name, .. } => {
                             return Err(format!("Function export not supported: '{name}'").into())
