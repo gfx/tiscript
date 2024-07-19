@@ -640,7 +640,7 @@ fn add_expr(i: Span) -> IResult<Span, Expression> {
     res
 }
 
-fn cond_expr(i0: Span) -> IResult<Span, Expression> {
+fn cmp_expr(i0: Span) -> IResult<Span, Expression> {
     let (i, first) = add_expr(i0)?;
     let (i, cond) = space_delimited(alt((
         tag("<="),
@@ -681,7 +681,7 @@ fn await_expr(i: Span) -> IResult<Span, Expression> {
 }
 
 fn expr(i: Span) -> IResult<Span, Expression> {
-    alt((await_expr, cond_expr, add_expr))(i)
+    alt((await_expr, cmp_expr, add_expr))(i)
 }
 
 fn open_brace(i: Span) -> IResult<Span, ()> {
@@ -1055,9 +1055,9 @@ mod tests {
     }
 
     #[test]
-    fn test_cond_expr() {
+    fn test_cmp_expr() {
         let input = Span::new("1 <= 2");
-        let (_r, ex) = cond_expr(input).unwrap();
+        let (_r, ex) = cmp_expr(input).unwrap();
         assert_eq!(*ex.span.fragment(), "1 <= 2");
     }
 
