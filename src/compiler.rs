@@ -198,6 +198,12 @@ impl Compiler {
                 self.add_inst(OpCode::Not, 0);
                 self.stack_top()
             }
+            ExprEnum::BwNot(ex) => {
+                let ex = self.compile_expr(ex)?;
+                self.add_copy_inst(ex);
+                self.add_inst(OpCode::BwNot, 0);
+                self.stack_top()
+            }
             ExprEnum::Minus(ex) => {
                 let ex = self.compile_expr(ex)?;
                 self.add_copy_inst(ex);
@@ -210,6 +216,13 @@ impl Compiler {
             ExprEnum::Mul(lhs, rhs) => self.bin_op(OpCode::Mul, lhs, rhs)?,
             ExprEnum::Div(lhs, rhs) => self.bin_op(OpCode::Div, lhs, rhs)?,
             ExprEnum::Mod(lhs, rhs) => self.bin_op(OpCode::Mod, lhs, rhs)?,
+            ExprEnum::BwOr(lhs, rhs) => self.bin_op(OpCode::BwOr, lhs, rhs)?,
+            ExprEnum::BwAnd(lhs, rhs) => self.bin_op(OpCode::BwAnd, lhs, rhs)?,
+            ExprEnum::BwXor(lhs, rhs) => self.bin_op(OpCode::BwXor, lhs, rhs)?,
+            ExprEnum::BwLShift(lhs, rhs) => self.bin_op(OpCode::BwLShift, lhs, rhs)?,
+            ExprEnum::BwRShift(lhs, rhs) => self.bin_op(OpCode::BwRShift, lhs, rhs)?,
+            ExprEnum::BwRShiftU(lhs, rhs) => self.bin_op(OpCode::BwRShiftU, lhs, rhs)?,
+
             ExprEnum::Lt(lhs, rhs) => self.bin_op(OpCode::Lt, lhs, rhs)?,
             ExprEnum::Le(lhs, rhs) => self.bin_op(OpCode::Le, lhs, rhs)?,
             ExprEnum::Gt(lhs, rhs) => self.bin_op(OpCode::Gt, lhs, rhs)?,

@@ -110,7 +110,7 @@ fn tc_coerce_type<'src>(
     })
 }
 
-fn tc_add_op<'src>(
+fn tc_bin_add_op<'src>(
     lhs: &Expression<'src>,
     rhs: &Expression<'src>,
     ctx: &mut TypeCheckContext<'src, '_>,
@@ -120,11 +120,11 @@ fn tc_add_op<'src>(
     match (&lhst, &rhst) {
         (TypeDecl::Str, _) => Ok(TypeDecl::Str),
         (_, TypeDecl::Str) => Ok(TypeDecl::Str),
-        _ => tc_binary_op(lhs, rhs, ctx, "+"),
+        _ => tc_bin_arithmetic_op(lhs, rhs, ctx, "+"),
     }
 }
 
-fn tc_binary_op<'src>(
+fn tc_bin_arithmetic_op<'src>(
     lhs: &Expression<'src>,
     rhs: &Expression<'src>,
     ctx: &mut TypeCheckContext<'src, '_>,
@@ -132,27 +132,23 @@ fn tc_binary_op<'src>(
 ) -> Result<TypeDecl, TypeCheckError<'src>> {
     let lhst = tc_expr(lhs, ctx)?;
     let rhst = tc_expr(rhs, ctx)?;
-    binary_op_type(&lhst, &rhst).map_err(|_| {
-        TypeCheckError::new(
-            format!(
-                "Operator '{}' cannot be applied to types '{}' and '{}'.",
-                op, lhst, rhst,
-            ),
-            lhs.span,
-        )
-    })
-}
 
-fn binary_op_type(lhs: &TypeDecl, rhs: &TypeDecl) -> Result<TypeDecl, ()> {
-    use TypeDecl::*;
-    Ok(match (lhs, rhs) {
-        (Any, _) => Any,
-        (_, Any) => Any,
-        (Bool, Bool) => Bool,
-        (Num, Num) => Num,
-        (Int, Int) => Int,
-        (Str, Str) => Str,
-        _ => return Err(()),
+    Ok(match (lhst, rhst) {
+        (TypeDecl::Any, _) => TypeDecl::Any,
+        (_, TypeDecl::Any) => TypeDecl::Any,
+        (TypeDecl::Bool, TypeDecl::Bool) => TypeDecl::Bool,
+        (TypeDecl::Num, TypeDecl::Num) => TypeDecl::Num,
+        (TypeDecl::Int, TypeDecl::Int) => TypeDecl::Int,
+        (TypeDecl::Str, TypeDecl::Str) => TypeDecl::Str,
+        _ => {
+            return Err(TypeCheckError::new(
+                format!(
+                    "Operator '{}' cannot be applied to types '{}' and '{}'.",
+                    op, lhst, rhst,
+                ),
+                lhs.span,
+            ))
+        }
     })
 }
 
@@ -248,6 +244,12 @@ fn tc_expr<'src>(
             func.ret_type()
         }
         Not(_ex) => TypeDecl::Bool,
+        BwNot(ex) => {
+            if tc_coerce_type(&tc_expr(ex, ctx)?, &TypeDecl::Int, ex.span).is_err() {
+                tc_coerce_type(&tc_expr(ex, ctx)?, &TypeDecl::Num, ex.span)?;
+            }
+            TypeDecl::Num
+        }
         Minus(ex) => {
             if tc_coerce_type(&tc_expr(ex, ctx)?, &TypeDecl::Int, ex.span).is_err() {
                 tc_coerce_type(&tc_expr(ex, ctx)?, &TypeDecl::Num, ex.span)?;
@@ -264,11 +266,19 @@ fn tc_expr<'src>(
             }
             TypeDecl::Num
         }
-        Add(lhs, rhs) => tc_add_op(lhs, rhs, ctx)?,
-        Sub(lhs, rhs) => tc_binary_op(lhs, rhs, ctx, "-")?,
-        Mul(lhs, rhs) => tc_binary_op(lhs, rhs, ctx, "*")?,
-        Mod(lhs, rhs) => tc_binary_op(lhs, rhs, ctx, "%")?,
-        Div(lhs, rhs) => tc_binary_op(lhs, rhs, ctx, "/")?,
+
+        Add(lhs, rhs) => tc_bin_add_op(lhs, rhs, ctx)?,
+        Sub(lhs, rhs) => tc_bin_arithmetic_op(lhs, rhs, ctx, "-")?,
+        Mul(lhs, rhs) => tc_bin_arithmetic_op(lhs, rhs, ctx, "*")?,
+        Div(lhs, rhs) => tc_bin_arithmetic_op(lhs, rhs, ctx, "/")?,
+        Mod(lhs, rhs) => tc_bin_arithmetic_op(lhs, rhs, ctx, "%")?,
+        BwAnd(lhs, rhs) => tc_bin_arithmetic_op(lhs, rhs, ctx, "&")?,
+        BwOr(lhs, rhs) => tc_bin_arithmetic_op(lhs, rhs, ctx, "|")?,
+        BwXor(lhs, rhs) => tc_bin_arithmetic_op(lhs, rhs, ctx, "^")?,
+        BwLShift(lhs, rhs) => tc_bin_arithmetic_op(lhs, rhs, ctx, "<<")?,
+        BwRShift(lhs, rhs) => tc_bin_arithmetic_op(lhs, rhs, ctx, ">>")?,
+        BwRShiftU(lhs, rhs) => tc_bin_arithmetic_op(lhs, rhs, ctx, ">>>")?,
+
         Lt(lhs, rhs) => tc_binary_cmp(lhs, rhs, ctx, "<")?,
         Le(lhs, rhs) => tc_binary_cmp(lhs, rhs, ctx, "<=")?,
         Gt(lhs, rhs) => tc_binary_cmp(lhs, rhs, ctx, ">")?,

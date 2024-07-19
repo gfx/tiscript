@@ -78,7 +78,12 @@ fn block_comment<'a, E: ParseError<Span<'a>>>(i: Span<'a>) -> IResult<Span<'a>, 
 }
 
 fn unary_op(i: Span) -> IResult<Span, Expression> {
-    let (r, op) = opt(space_delimited(alt((tag("!"), tag("-"), tag("+")))))(i)?;
+    let (r, op) = opt(space_delimited(alt((
+        tag("!"),
+        tag("~"),
+        tag("-"),
+        tag("+"),
+    ))))(i)?;
     let (r, ex) = space_delimited(factor)(r)?;
 
     if let Some(op) = op {
@@ -87,6 +92,7 @@ fn unary_op(i: Span) -> IResult<Span, Expression> {
             Expression {
                 expr: match *op.fragment() {
                     "!" => ExprEnum::Not(Box::new(ex)),
+                    "~" => ExprEnum::BwNot(Box::new(ex)),
                     "-" => ExprEnum::Minus(Box::new(ex)),
                     "+" => ExprEnum::Plus(Box::new(ex)),
                     _ => unreachable!(),
@@ -598,14 +604,32 @@ fn add_expr(i: Span) -> IResult<Span, Expression> {
     let (r, init) = term(i)?;
 
     let res = fold_many0(
-        pair(space_delimited(alt((char('+'), char('-')))), term),
+        pair(
+            space_delimited(alt((
+                tag("+"),
+                tag("-"),
+                tag("|"),
+                tag("&"),
+                tag("^"),
+                tag("<<"),
+                tag(">>>"),
+                tag(">>"),
+            ))),
+            term,
+        ),
         move || init.clone(),
-        |acc, (op, val): (char, Expression)| {
+        |acc, (op, val)| {
             let span = calc_offset(i, acc.span);
-            match op {
-                '+' => Expression::new(ExprEnum::Add(Box::new(acc), Box::new(val)), span),
-                '-' => Expression::new(ExprEnum::Sub(Box::new(acc), Box::new(val)), span),
-                _ => panic!("Additive expression should have '+' or '-' operator"),
+            match *op.fragment() {
+                "+" => Expression::new(ExprEnum::Add(Box::new(acc), Box::new(val)), span),
+                "-" => Expression::new(ExprEnum::Sub(Box::new(acc), Box::new(val)), span),
+                "|" => Expression::new(ExprEnum::BwOr(Box::new(acc), Box::new(val)), span),
+                "&" => Expression::new(ExprEnum::BwAnd(Box::new(acc), Box::new(val)), span),
+                "^" => Expression::new(ExprEnum::BwXor(Box::new(acc), Box::new(val)), span),
+                "<<" => Expression::new(ExprEnum::BwLShift(Box::new(acc), Box::new(val)), span),
+                ">>" => Expression::new(ExprEnum::BwRShift(Box::new(acc), Box::new(val)), span),
+                ">>>" => Expression::new(ExprEnum::BwRShiftU(Box::new(acc), Box::new(val)), span),
+                _ => unreachable!("Additive expression should have '+' or '-' operator"),
             }
         },
     )(r);

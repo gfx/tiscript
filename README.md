@@ -93,7 +93,7 @@ This is a list of features in ECMA-262 that are planned or implemented:
 * [x] array literals
 * [x] object literals
 * [ ] [WIP] arithmetic operators (`+`, `-`, `*`, `/`, `%`, `**`)
-* [ ] bitwise operators (`&`, `|`, `^`, `~`, `<<`, `>>`, `>>>`)
+* [x] bitwise operators (`~`, `&`, `|`, `^`, `<<`, `>>`, `>>>`)
 * [x] comparison operators (`==`, `!=`, `===`, `!==`, `<`, `>`, `<=`, `>=`)
 * [ ] increment and decrement operators (`++`, `--`)
 * [ ] ternary operator (`cond ? t : f`)

@@ -61,6 +61,7 @@ impl std::fmt::Debug for Vm {
     }
 }
 
+#[cold]
 fn err_bin_op(op: &str, lhs: &Value, rhs: &Value) -> Box<dyn Error> {
     format!(
         "Operator {} cannot be applied to types '{}' and '{}'",
@@ -73,44 +74,94 @@ fn err_bin_op(op: &str, lhs: &Value, rhs: &Value) -> Box<dyn Error> {
 
 fn bin_op_add(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
     match (lhs, rhs) {
-        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::from(lhs + rhs)),
-        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::from(lhs + rhs)),
-        (Value::Str(lhs), Value::Str(rhs)) => Ok(Value::from(lhs.clone() + rhs)),
-        (Value::Str(lhs), rhs) => Ok(Value::from(lhs.clone() + &rhs.to_string())),
-        (lhs, Value::Str(rhs)) => Ok(Value::from(lhs.to_string() + rhs)),
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Num(lhs + rhs)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Int(lhs + rhs)),
+        (Value::Str(lhs), rhs) => Ok(Value::Str(lhs.clone() + &rhs.to_string())),
+        (lhs, Value::Str(rhs)) => Ok(Value::Str(lhs.to_string() + rhs)),
         _ => Err(err_bin_op("+", lhs, rhs)),
     }
 }
 
 fn bin_op_sub(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
     match (lhs, rhs) {
-        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::from(lhs - rhs)),
-        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::from(lhs - rhs)),
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Num(lhs - rhs)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Int(lhs - rhs)),
         _ => Err(err_bin_op("-", lhs, rhs)),
     }
 }
 
 fn bin_op_mul(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
     match (lhs, rhs) {
-        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::from(lhs * rhs)),
-        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::from(lhs * rhs)),
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Num(lhs * rhs)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Int(lhs * rhs)),
         _ => Err(err_bin_op("*", lhs, rhs)),
     }
 }
 
 fn bin_op_div(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
     match (lhs, rhs) {
-        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::from(lhs / rhs)),
-        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::from(lhs / rhs)),
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Num(lhs / rhs)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Int(lhs / rhs)),
         _ => Err(err_bin_op("/", lhs, rhs)),
     }
 }
 
 fn bin_op_mod(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
     match (lhs, rhs) {
-        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::from(lhs % rhs)),
-        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::from(lhs % rhs)),
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Num(lhs % rhs)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Int(lhs % rhs)),
         _ => Err(err_bin_op("%", lhs, rhs)),
+    }
+}
+
+fn bin_op_bw_or(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
+    match (lhs, rhs) {
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Num((*lhs as i32 | *rhs as i32) as f64)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Int(lhs | rhs)),
+        _ => Err(err_bin_op("|", lhs, rhs)),
+    }
+}
+
+fn bin_op_bw_and(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
+    match (lhs, rhs) {
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Num((*lhs as i32 & *rhs as i32) as f64)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Int(lhs & rhs)),
+        _ => Err(err_bin_op("&", lhs, rhs)),
+    }
+}
+
+fn bin_op_bw_xor(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
+    match (lhs, rhs) {
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Num((*lhs as i32 ^ *rhs as i32) as f64)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Int(lhs ^ rhs)),
+        _ => Err(err_bin_op("^", lhs, rhs)),
+    }
+}
+
+fn bin_op_bw_lshift(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
+    match (lhs, rhs) {
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Num(((*lhs as i32) << *rhs as i32) as f64)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Int(lhs << rhs)),
+        _ => Err(err_bin_op("<<", lhs, rhs)),
+    }
+}
+
+fn bin_op_bw_rshift(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
+    match (lhs, rhs) {
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Num((*lhs as i32 >> *rhs as i32) as f64)),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Int(lhs >> rhs)),
+        _ => Err(err_bin_op(">>", lhs, rhs)),
+    }
+}
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Unsigned_right_shift
+// a.k.a. Right Shift Zero Fill operator.
+fn bin_op_bw_rshift_u(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
+    match (lhs, rhs) {
+        (Value::Num(lhs), Value::Num(rhs)) => {
+            Ok(Value::Num(((*lhs as i32 as u32) >> (*rhs as i32 as u32)) as f64))
+        }
+        _ => Err(err_bin_op(">>>", lhs, rhs)),
     }
 }
 
@@ -371,6 +422,15 @@ impl Vm {
                     let top = stack.pop().expect("Not needs an argument");
                     stack.push(Value::Bool(!top.to_bool()));
                 }
+                OpCode::BwNot => {
+                    let stack = &mut self.top_mut()?.stack;
+                    let top = stack.pop().expect("BwNot needs an argument");
+                    match top {
+                        Value::Num(n) => stack.push(Value::Num(!(n as i64) as f64)),
+                        Value::Int(n) => stack.push(Value::Int(!n)),
+                        _ => panic!("BwNot needs an integer"),
+                    }
+                }
                 OpCode::Neg => {
                     let stack = &mut self.top_mut()?.stack;
                     let top = stack.pop().expect("Neg needs an argument");
@@ -385,6 +445,18 @@ impl Vm {
                 OpCode::Mul => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_mul)?,
                 OpCode::Div => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_div)?,
                 OpCode::Mod => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_mod)?,
+                OpCode::BwOr => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_bw_or)?,
+                OpCode::BwAnd => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_bw_and)?,
+                OpCode::BwXor => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_bw_xor)?,
+                OpCode::BwLShift => {
+                    Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_bw_lshift)?
+                }
+                OpCode::BwRShift => {
+                    Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_bw_rshift)?
+                }
+                OpCode::BwRShiftU => {
+                    Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_bw_rshift_u)?
+                }
                 OpCode::Call => {
                     let stack = &self.top()?.stack;
                     let args = &stack[stack.len() - instruction.arg0 as usize..];
