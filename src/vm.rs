@@ -204,7 +204,7 @@ fn bin_op_nee(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
 #[cold]
 fn stack_overflow(ip: usize, instruction: Instruction, stack: &[Value]) -> ! {
     panic!(
-        "[BUG] Stack overflow in `[{}] {:?}` where stack.len() is {} (see --disasm to to look into the instruction)",
+        "[BUG] Stack overflow in `[{}] {:?}` where stack.len() is {} (see --disasm to look into the instructions)",
         ip, instruction, stack.len()
     );
 }
@@ -498,7 +498,7 @@ impl Vm {
                         .must_be_str()
                         .expect("Export name must be a string")
                         .to_string();
-                    let value = stack.pop().expect("Export needs a value");
+                    let value = stack[stack.len() - 1].clone();
 
                     match self.exports {
                         Value::Object(ref mut map) => {
