@@ -338,7 +338,9 @@ impl Vm {
                 }
                 OpCode::Store => {
                     let stack = &mut self.top_mut()?.stack;
-                    let Some(d) = stack.len().checked_sub(instruction.arg0 as usize) else {
+                    let top_to_bottom_idx = instruction.arg0 as usize;
+                    // stack.len() - top_to_bottom_idx - 1 with overflow check
+                    let Some(d) = stack.len().checked_sub(top_to_bottom_idx) else {
                         stack_overflow(ip, instruction, stack);
                     };
                     let Some(idx) = d.checked_sub(1) else {
@@ -349,7 +351,9 @@ impl Vm {
                 }
                 OpCode::Copy => {
                     let stack = &mut self.top_mut()?.stack;
-                    let Some(d) = stack.len().checked_sub(instruction.arg0 as usize) else {
+                    let top_to_bottom_idx = instruction.arg0 as usize;
+                    // stack.len() - top_to_bottom_idx - 1 with overflow check
+                    let Some(d) = stack.len().checked_sub(top_to_bottom_idx) else {
                         stack_overflow(ip, instruction, stack);
                     };
                     let Some(idx) = d.checked_sub(1) else {

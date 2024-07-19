@@ -83,6 +83,7 @@ impl Compiler {
     fn add_copy_inst(&mut self, stack_idx: StkIdx) -> InstPtr {
         let inst = self.add_inst(
             OpCode::Copy,
+            // convert bottom-to-top index into top-to-bottom one
             (self.target_stack.len() - stack_idx.0 - 1) as u8,
         );
         self.target_stack.push(Target::Temp);
