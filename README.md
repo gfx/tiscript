@@ -77,7 +77,7 @@ This is a list of features in ECMA-262 that are planned or implemented:
 
 * [x] shebang
 * [x] line and block comments
-* [x] `export` (there are bugs. see `tests_fail` directory)
+* [x] `export`
 * [x] `export default`
 * [x] `let`
 * [x] `const`
