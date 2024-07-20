@@ -1,0 +1,9 @@
+{
+  "name": "tiscript",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "ISC",
+  "dependencies": {
+    "prettier": "^3.3.3"
+  }
+}

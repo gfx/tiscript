@@ -129,7 +129,7 @@ This is a list of features in ECMA-262 that are planned or implemented:
 * [x] bitwise operators (`~`, `&`, `|`, `^`, `<<`, `>>`, `>>>`)
 * [x] comparison operators (`==`, `!=`, `===`, `!==`, `<`, `>`, `<=`, `>=`)
 * [ ] increment and decrement operators (`++`, `--`)
-* [ ] ternary operator (`cond ? t : f`)
+* [x] ternary operator (`cond ? t : f`)
 * [ ] logical operators (`&&`, `||`, `!`)
 * [ ] nullish coalescing operator (`??`)
 * [ ] null-conditional operator (`?.`)

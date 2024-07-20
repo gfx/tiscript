@@ -249,37 +249,22 @@ impl Compiler {
                 self.target_stack
                     .resize(stack_before_call + 1, Target::Temp);
 
-                // eprintln!(
-                //     "Coercing stack to {:?} for {:?}:\n    [{}]",
-                //     stack_before_args,
-                //     name.fragment(),
-                //     self.target_stack
-                //         .iter()
-                //         .map(|t| {
-                //             match t {
-                //                 Target::Temp => "Temp".to_string(),
-                //                 Target::Lit(i) => format!("Lit({:?})", self.literals[*i]),
-                //                 Target::Local(s) => format!("Local({})", s),
-                //             }
-                //         })
-                //         .collect::<Vec<_>>()
-                //         .join(", ")
-                // );
                 self.coerce_stack(StkIdx(stack_before_args));
-                // eprintln!(
-                //     " -> [{}]",
-                //     self.target_stack
-                //         .iter()
-                //         .map(|t| {
-                //             match t {
-                //                 Target::Temp => "Temp".to_string(),
-                //                 Target::Lit(i) => format!("Lit({:?})", self.literals[*i]),
-                //                 Target::Local(s) => format!("Local({})", s),
-                //             }
-                //         })
-                //         .collect::<Vec<_>>()
-                //         .join(", ")
-                // );
+                self.stack_top()
+            }
+            ExprEnum::Ternary { cond, true_branch, false_branch } => {
+                let cond = self.compile_expr(cond)?;
+                self.add_copy_inst(cond);
+                let jf_inst = self.add_jf_inst();
+                let stack_size_before = self.target_stack.len();
+                let _true_branch = self.compile_expr(true_branch)?;
+                self.coerce_stack(StkIdx(stack_size_before + 1));
+                let jmp_inst = self.add_inst(OpCode::Jmp, 0);
+                self.fixup_jmp(jf_inst);
+                self.target_stack.resize(stack_size_before, Target::Temp);
+                let _false_branch = self.compile_expr(false_branch)?;
+                self.coerce_stack(StkIdx(stack_size_before + 1));
+                self.fixup_jmp(jmp_inst);
                 self.stack_top()
             }
             ExprEnum::Await(ex) => {

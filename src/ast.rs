@@ -74,6 +74,7 @@ pub enum ExprEnum<'src> {
     Ne(Box<Expression<'src>>, Box<Expression<'src>>),
     Eee(Box<Expression<'src>>, Box<Expression<'src>>),
     Nee(Box<Expression<'src>>, Box<Expression<'src>>),
+    Ternary{ cond: Box<Expression<'src>>, true_branch: Box<Expression<'src>>, false_branch: Box<Expression<'src>> },
     Await(Box<Expression<'src>>),
 }
 

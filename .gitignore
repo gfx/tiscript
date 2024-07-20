@@ -1,4 +1,5 @@
 /target
 
 .cover
-
+node_modules
+package-lock.json

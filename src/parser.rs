@@ -680,8 +680,28 @@ fn await_expr(i: Span) -> IResult<Span, Expression> {
     ))
 }
 
-fn expr(i: Span) -> IResult<Span, Expression> {
-    alt((await_expr, cmp_expr, add_expr))(i)
+fn expr(input: Span) -> IResult<Span, Expression> {
+    let (i, ex) = alt((await_expr, cmp_expr, add_expr))(input)?;
+
+    let Ok((i, _)) = char::<Span, nom::error::Error<Span>>('?')(i) else {
+        return Ok((i, ex));
+    };
+
+    // ternary operator (expr ? expr : expr)
+    let (i, true_branch) = expr(i)?;
+    let (i, _) = space_delimited(char(':'))(i)?;
+    let (i, false_branch) = expr(i)?;
+    Ok((
+        i,
+        Expression::new(
+            ExprEnum::Ternary {
+                cond: Box::new(ex),
+                true_branch: Box::new(true_branch),
+                false_branch: Box::new(false_branch),
+            },
+            calc_offset(input, i),
+        ),
+    ))
 }
 
 fn open_brace(i: Span) -> IResult<Span, ()> {

@@ -287,6 +287,14 @@ fn tc_expr<'src>(
         Ne(lhs, rhs) => tc_binary_ee(lhs, rhs, ctx, "!=")?,
         Eee(_lhs, _rhs) => Ok(TypeDecl::Bool)?,
         Nee(_lhs, _rhs) => Ok(TypeDecl::Bool)?,
+        Ternary { cond, true_branch, false_branch } => {
+            let _ = tc_expr(cond, ctx)?;
+
+            let true_type = tc_expr(true_branch, ctx)?;
+            let false_type = tc_expr(false_branch, ctx)?;
+            tc_coerce_type(&true_type, &false_type, true_branch.span)?;
+            true_type
+        }
         Await(ex) => {
             let _res = tc_expr(ex, ctx)?;
             TypeDecl::Any
@@ -319,11 +327,11 @@ pub fn type_check<'src>(
                 res = type_check(stmts, ctx)?;
             }
             Statement::If {
+                cond,
                 true_branch,
                 false_branch,
-                ..
             } => {
-                // No type check for cond so far. Any type can be coerced to a bool.
+                let _ = tc_expr(cond, ctx)?;
 
                 let Statement::Block(true_branch) = &**true_branch else {
                     unreachable!("If statement should have a block in true branch");
