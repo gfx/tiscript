@@ -361,17 +361,23 @@ pub fn type_check<'src>(
                 stmts,
                 is_cofn,
             } => {
+                let ret_type = if let Some(ret_type) = ret_type {
+                    *ret_type
+                } else {
+                    TypeDecl::Any
+                };
+
                 // Function declaration needs to be added first to allow recursive calls
                 ctx.funcs.insert(
                     name.to_string(),
-                    FnDecl::User(UserFn::new(args.clone(), *ret_type, *is_cofn)),
+                    FnDecl::User(UserFn::new(args.clone(), ret_type, *is_cofn)),
                 );
                 let mut subctx = TypeCheckContext::push_stack(ctx);
                 for (arg, ty) in args.iter() {
                     subctx.vars.insert(arg, *ty);
                 }
                 let last_stmt = type_check(stmts, &mut subctx)?;
-                tc_coerce_type(&last_stmt, ret_type, stmts.span())?;
+                tc_coerce_type(&last_stmt, &ret_type, stmts.span())?;
             }
             Statement::Expression(e) => {
                 res = tc_expr(e, ctx)?;

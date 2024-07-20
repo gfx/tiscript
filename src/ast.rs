@@ -114,7 +114,7 @@ pub enum Statement<'src> {
     FnDef {
         name: Span<'src>,
         args: Vec<(Span<'src>, TypeDecl)>,
-        ret_type: TypeDecl,
+        ret_type: Option<TypeDecl>,
         stmts: Statements<'src>,
         is_cofn: bool,
     },

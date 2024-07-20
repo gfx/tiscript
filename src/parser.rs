@@ -11,6 +11,8 @@ use nom::{
 
 use crate::ast::{ExprEnum, Expression, Span, Statement, Statements, TypeDecl};
 
+pub type Error<'a> = nom::error::Error<Span<'a>>;
+
 pub trait GetSpan<'a> {
     fn span(&self) -> Span<'a>;
 }
@@ -348,7 +350,7 @@ fn num_literal(input: Span) -> IResult<Span, Expression> {
         r,
         Expression::new(
             ExprEnum::NumLiteral(v.replace('_', "").parse().map_err(|_| {
-                nom::Err::Error(nom::error::Error {
+                nom::Err::Error(Error {
                     input,
                     code: nom::error::ErrorKind::Digit,
                 })
@@ -371,7 +373,7 @@ fn bigint_literal(input: Span) -> IResult<Span, Expression> {
         r,
         Expression::new(
             ExprEnum::BigIntLiteral(digits.parse().map_err(|_| {
-                nom::Err::Error(nom::error::Error {
+                nom::Err::Error(Error {
                     input,
                     code: nom::error::ErrorKind::Digit,
                 })
@@ -683,7 +685,7 @@ fn await_expr(i: Span) -> IResult<Span, Expression> {
 fn expr(input: Span) -> IResult<Span, Expression> {
     let (i, ex) = alt((await_expr, cmp_expr, add_expr))(input)?;
 
-    let Ok((i, _)) = char::<Span, nom::error::Error<Span>>('?')(i) else {
+    let Ok((i, _)) = char::<Span, Error>('?')(i) else {
         return Ok((i, ex));
     };
 
@@ -776,7 +778,7 @@ fn var_def(input: Span) -> IResult<Span, Statement> {
     let (i, _) = delimited(multispace0, tag("var"), multispace1)(input)?;
     let _ = variable_def(input, i, false);
     // parser knows `var` syntax, but it causes an error because it's not supported.
-    Err(nom::Err::Error(nom::error::Error::new(
+    Err(nom::Err::Error(Error::new(
         input,
         nom::error::ErrorKind::Verify,
     )))
@@ -828,7 +830,7 @@ fn type_primitive(i: Span) -> IResult<Span, TypeDecl> {
             "bigint" => TypeDecl::Int,
             "string" => TypeDecl::Str,
             _ => {
-                return Err(nom::Err::Error(nom::error::Error::new(
+                return Err(nom::Err::Error(Error::new(
                     td,
                     nom::error::ErrorKind::Verify,
                 )));
@@ -871,9 +873,16 @@ fn fn_def_statement(i: Span) -> IResult<Span, Statement> {
         let (i, name) = space_delimited(identifier)(i)?;
         let (i, _) = space_delimited(tag("("))(i)?;
         let (i, args) = separated_list0(char(','), space_delimited(argument))(i)?;
-        let (i, _) = space_delimited(tag(")"))(i)?;
-        let (i, _) = space_delimited(tag(":"))(i)?;
-        let (i, ret_type) = type_expr(i)?;
+        let (mut i, _) = space_delimited(tag(")"))(i)?;
+
+        let ret_type: Option<TypeDecl>;
+        if let Ok((ii, _)) = space_delimited(char::<Span, Error>(':'))(i) {
+            let (ii, td) = type_expr(ii)?;
+            i = ii;
+            ret_type = Some(td);
+        } else {
+            ret_type = None;
+        }
         let (i, stmts) = delimited(open_brace, statements, close_brace)(i)?;
         Ok((i, (name, args, ret_type, stmts)))
     })(i)?;
@@ -903,7 +912,7 @@ fn export_statement(i: Span) -> IResult<Span, Statement> {
     match &stmt {
         Statement::VarDef { .. } | Statement::FnDef { .. } => {}
         _ => {
-            return Err(nom::Err::Error(nom::error::Error::new(
+            return Err(nom::Err::Error(Error::new(
                 i,
                 nom::error::ErrorKind::Verify,
             )));
@@ -972,7 +981,7 @@ fn statements(i: Span) -> IResult<Span, Statements> {
     Ok((i, stmts))
 }
 
-pub fn statements_finish(i: Span) -> Result<Statements, nom::error::Error<Span>> {
+pub fn statements_finish(i: Span) -> Result<Statements, Error> {
     let (_, res) = statements(i).finish()?;
     Ok(res)
 }
