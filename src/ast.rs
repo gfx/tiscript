@@ -107,6 +107,7 @@ pub enum Statement<'src> {
         td: Option<TypeDecl>,
         ex: Expression<'src>,
         is_const: bool,
+        is_var: bool,
     },
     VarAssign {
         span: Span<'src>,

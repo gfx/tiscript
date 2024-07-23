@@ -413,30 +413,18 @@ mod tests {
         assert!(result.is_ok());
     }
 
-    // #[test]
-    // fn regression_call_with_exports() {
-    //     // as of 33edc48d1, this code causes a stack overflow error.
-    //     let result = eval_to_json(
-    //         r#"
-    //             const a = 1;
-    //             export const b = 2;
-    //             export const c = Math.sqrt(a);
-    //     "#,
-    //     )
-    //     .unwrap();
-    //     assert_eq!(result, json!({ "b": 2, "c": 1 }));
-    // }
+    #[test]
+    fn test_var_failure() {
+        let result = eval_to_json(
+            r#"
+            var foo = 42;
+        "#,
+        );
 
-    // #[test]
-    // fn regression_call_with_exports2() {
-    //     let result = eval_to_json(
-    //         r#"
-    //             export const a = 1;
-    //             export const b = 2;
-    //             export const c = Math.sqrt(a);p
-    //     "#,
-    //     )
-    //     .unwrap();
-    //     assert_eq!(result, json!({ "a": 1, "b": 2, "c": 1 }));
-    // }
+        assert!(result.is_err());
+        assert_eq!(
+            result.unwrap_err().to_string(),
+            "test.ts:2:17: Keyword 'var' is not supported. Use 'let' or 'const' instead."
+        );
+    }
 }

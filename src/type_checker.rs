@@ -324,7 +324,13 @@ pub fn type_check<'src>(
             Statement::ImportType { .. } => {
                 // TODO
             }
-            Statement::VarDef { name, td, ex, .. } => {
+            Statement::VarDef { name, td, ex, is_var, .. } => {
+                if *is_var {
+                    return Err(TypeCheckError::new(
+                        "Keyword 'var' is not supported. Use 'let' or 'const' instead.".into(),
+                        *name,
+                    ));
+                }
                 let mut init_type = tc_expr(ex, ctx)?;
                 if let Some(td) = td {
                     init_type = tc_coerce_type(&init_type, td, ex.span)?;

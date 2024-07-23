@@ -841,6 +841,7 @@ fn variable_def<'a>(
     span: Span<'a>,
     i: Span<'a>,
     is_const: bool,
+    is_var: bool,
 ) -> IResult<Span<'a>, Statement<'a>> {
     let (i, (name, td, ex)) = cut(|i| {
         let (i, name) = space_delimited(identifier)(i)?;
@@ -867,30 +868,26 @@ fn variable_def<'a>(
             td,
             ex,
             is_const,
+            is_var,
         },
     ))
 }
 
 fn var_def(input: Span) -> IResult<Span, Statement> {
     let (i, _) = delimited(multispace0, tag("var"), multispace1)(input)?;
-    let _ = variable_def(input, i, false);
-    // parser knows `var` syntax, but it causes an error because it's not supported.
-    Err(nom::Err::Error(Error::new(
-        input,
-        nom::error::ErrorKind::Verify,
-    )))
+    variable_def(input, i, false, true)
 }
 
 fn let_def(i: Span) -> IResult<Span, Statement> {
     let span = i;
     let (i, _) = delimited(multispace0, tag("let"), multispace1)(i)?;
-    variable_def(span, i, false)
+    variable_def(span, i, false, false)
 }
 
 fn const_def(i: Span) -> IResult<Span, Statement> {
     let span = i;
     let (i, _) = delimited(multispace0, tag("const"), multispace1)(i)?;
-    variable_def(span, i, true)
+    variable_def(span, i, true, false)
 }
 
 fn var_assign(i: Span) -> IResult<Span, Statement> {
