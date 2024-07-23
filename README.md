@@ -162,6 +162,7 @@ This is a list of features in ECMA-262 that are planned or implemented:
 
 This is a list of features in TypeScript that are planned or implemented:
 
+* [x] `import type` statement (but it does nothing so far)
 * [ ] `any`
 * [ ] `unknown`
 * [ ] `never`
