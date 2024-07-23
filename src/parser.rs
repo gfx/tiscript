@@ -752,7 +752,6 @@ enum ImportSpecifier<'a> {
 fn import_default(input: Span) -> IResult<Span, Vec<ImportSpecifier>> {
     let (i, name) = space_delimited(identifier)(input)?;
     Ok((i, vec![ImportSpecifier::ImportDefault(name)]))
-
 }
 
 fn import_namespace(input: Span) -> IResult<Span, Vec<ImportSpecifier>> {
@@ -811,11 +810,7 @@ fn import_named(input: Span) -> IResult<Span, Vec<ImportSpecifier>> {
 fn import_list_from_module(input: Span) -> IResult<Span, Span> {
     // import type IMPORT_LIST from "module";
 
-    let (i, _) = alt((
-        import_default,
-        import_namespace,
-        import_named,
-    ))(input)?;
+    let (i, _) = alt((import_default, import_namespace, import_named))(input)?;
 
     let (i, _) = space_delimited(tag("from"))(i)?;
     let (i, _) = space_delimited(alt((dq_str_literal, sq_str_literal)))(i)?;

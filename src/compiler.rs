@@ -252,7 +252,11 @@ impl Compiler {
                 self.coerce_stack(StkIdx(stack_before_args));
                 self.stack_top()
             }
-            ExprEnum::Ternary { cond, true_branch, false_branch } => {
+            ExprEnum::Ternary {
+                cond,
+                true_branch,
+                false_branch,
+            } => {
                 let cond = self.compile_expr(cond)?;
                 self.add_copy_inst(cond);
                 let jf_inst = self.add_jf_inst();

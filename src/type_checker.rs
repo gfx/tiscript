@@ -8,10 +8,16 @@ use crate::{
 
 pub struct TypeCheckContext<'src, 'ctx> {
     /// Variables table for type checking.
-    vars: HashMap<&'src str, TypeDecl>,
+    vars: HashMap<&'src str, VarDecl>,
     /// Function names are owned strings because it can be either from source or native.
     funcs: HashMap<String, FnDecl<'src>>,
     super_context: Option<&'ctx TypeCheckContext<'src, 'ctx>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct VarDecl {
+    pub td: TypeDecl,
+    pub is_const: bool,
 }
 
 impl Default for TypeCheckContext<'_, '_> {
@@ -31,10 +37,6 @@ impl<'src, 'ctx> TypeCheckContext<'src, 'ctx> {
 
     pub fn add_fn(&mut self, name: String, fn_decl: NativeFn<'src>) {
         self.funcs.insert(name, FnDecl::Native(fn_decl));
-    }
-
-    fn get_var(&self, name: &str) -> Option<TypeDecl> {
-        self.vars.get(name).copied()
     }
 
     fn get_fn(&self, name: &str) -> Option<&FnDecl<'src>> {
@@ -226,7 +228,7 @@ fn tc_expr<'src>(
         NumLiteral(_val) => TypeDecl::Num,
         BigIntLiteral(_val) => TypeDecl::Int,
         StrLiteral(_val) => TypeDecl::Str,
-        Ident(str) => ctx.get_var(str).ok_or_else(|| {
+        Ident(str) => ctx.vars.get(**str).map(|v| v.td).ok_or_else(|| {
             TypeCheckError::new(format!("Variable \"{}\" not found in scope", str), e.span)
         })?,
         FnInvoke(str, args) => {
@@ -324,7 +326,14 @@ pub fn type_check<'src>(
             Statement::ImportType { .. } => {
                 // TODO
             }
-            Statement::VarDef { name, td, ex, is_var, .. } => {
+            Statement::VarDef {
+                name,
+                td,
+                ex,
+                is_var,
+                is_const,
+                ..
+            } => {
                 if *is_var {
                     return Err(TypeCheckError::new(
                         "Keyword 'var' is not supported. Use 'let' or 'const' instead.".into(),
@@ -335,12 +344,31 @@ pub fn type_check<'src>(
                 if let Some(td) = td {
                     init_type = tc_coerce_type(&init_type, td, ex.span)?;
                 }
-                ctx.vars.insert(**name, init_type);
+                ctx.vars.insert(
+                    **name,
+                    VarDecl {
+                        td: init_type,
+                        is_const: *is_const,
+                    },
+                );
             }
             Statement::VarAssign { name, ex, .. } => {
                 let init_type = tc_expr(ex, ctx)?;
-                let target = ctx.vars.get(**name).expect("Variable not found");
-                tc_coerce_type(&init_type, target, ex.span)?;
+
+                let Some(target) = ctx.vars.get(**name) else {
+                    return Err(TypeCheckError::new(
+                        format!("Variable '{}' not found in scope", name),
+                        *name,
+                    ));
+                };
+                if target.is_const {
+                    return Err(TypeCheckError::new(
+                        format!("Cannot assign to '{}' because it is a constant.", name),
+                        *name,
+                    ));
+                }
+
+                tc_coerce_type(&init_type, &target.td, ex.span)?;
             }
             Statement::Block(stmts) => {
                 res = type_check(stmts, ctx)?;
@@ -393,7 +421,13 @@ pub fn type_check<'src>(
                 );
                 let mut subctx = TypeCheckContext::push_stack(ctx);
                 for (arg, ty) in args.iter() {
-                    subctx.vars.insert(arg, *ty);
+                    subctx.vars.insert(
+                        arg,
+                        VarDecl {
+                            td: *ty,
+                            is_const: false,
+                        },
+                    );
                 }
                 let last_stmt = type_check(stmts, &mut subctx)?;
                 tc_coerce_type(&last_stmt, &ret_type, stmts.span())?;
