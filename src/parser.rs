@@ -743,22 +743,22 @@ fn if_statement(input: Span) -> IResult<Span, Statement> {
 #[allow(dead_code) /* enum fields are not yet used */]
 #[derive(Debug, Clone, PartialEq)]
 enum ImportSpecifier<'a> {
-    ImportDefault(Span<'a>),              // import foo
-    ImportNamespace(Span<'a>),            // import * as foo
-    ImportNamed(Span<'a>),                // import { foo }
-    ImportNamedAlias(Span<'a>, Span<'a>), // import { foo as bar }
+    Default(Span<'a>),              // import foo
+    Namespace(Span<'a>),            // import * as foo
+    Named(Span<'a>),                // import { foo }
+    NamedAlias(Span<'a>, Span<'a>), // import { foo as bar }
 }
 
 fn import_default(input: Span) -> IResult<Span, Vec<ImportSpecifier>> {
     let (i, name) = space_delimited(identifier)(input)?;
-    Ok((i, vec![ImportSpecifier::ImportDefault(name)]))
+    Ok((i, vec![ImportSpecifier::Default(name)]))
 }
 
 fn import_namespace(input: Span) -> IResult<Span, Vec<ImportSpecifier>> {
     let (i, _) = space_delimited(tag("*"))(input)?;
     let (i, _) = space_delimited(tag("as"))(i)?;
     let (i, name) = space_delimited(identifier)(i)?;
-    Ok((i, vec![ImportSpecifier::ImportNamespace(name)]))
+    Ok((i, vec![ImportSpecifier::Namespace(name)]))
 }
 
 fn import_named(input: Span) -> IResult<Span, Vec<ImportSpecifier>> {
@@ -790,16 +790,16 @@ fn import_named(input: Span) -> IResult<Span, Vec<ImportSpecifier>> {
 
     let (name, alias) = first;
     if let Some(alias) = alias {
-        list.push(ImportSpecifier::ImportNamedAlias(name, alias));
+        list.push(ImportSpecifier::NamedAlias(name, alias));
     } else {
-        list.push(ImportSpecifier::ImportNamed(name));
+        list.push(ImportSpecifier::Named(name));
     }
 
     for (name, alias) in rest {
         if let Some(alias) = alias {
-            list.push(ImportSpecifier::ImportNamedAlias(name, alias));
+            list.push(ImportSpecifier::NamedAlias(name, alias));
         } else {
-            list.push(ImportSpecifier::ImportNamed(name));
+            list.push(ImportSpecifier::Named(name));
         }
     }
 
