@@ -317,6 +317,7 @@ pub fn type_check<'src>(
     let mut res = TypeDecl::Any;
     for stmt in stmts {
         match stmt {
+            Statement::Null => {}
             Statement::Import { span, .. } => {
                 return Err(TypeCheckError::new(
                     "import statement is not yet supported.".into(),

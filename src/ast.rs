@@ -96,6 +96,7 @@ impl<'a> Expression<'a> {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Statement<'src> {
+    Null,
     Expression(Expression<'src>),
     Import {
         span: Span<'src>,
@@ -140,6 +141,7 @@ pub enum Statement<'src> {
 impl<'src> Statement<'src> {
     pub fn span(&self) -> Option<Span<'src>> {
         match self {
+            Statement::Null => None,
             Statement::Expression(ex) => Some(ex.span),
             Statement::Import { span, .. } => Some(*span),
             Statement::ImportType { span, .. } => Some(*span),

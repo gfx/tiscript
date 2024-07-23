@@ -49,7 +49,7 @@ where
 }
 
 // end of statement: semicolon or newline
-fn eos<'src>(input: Span<'src>) -> IResult<Span<'src>, char> {
+fn eos(input: Span) -> IResult<Span, char> {
     alt((
         space_delimited(char(';')),
         preceded(multispace0, char('\n')),
@@ -1029,7 +1029,12 @@ fn yield_statement(i: Span) -> IResult<Span, Statement> {
     Ok((i, Statement::Yield(ex)))
 }
 
-fn statement<'a>(input: Span<'a>) -> IResult<Span<'a>, Statement> {
+fn null_statement(input: Span) -> IResult<Span, Statement> {
+    let (i, _) = eos(input)?;
+    Ok((i, Statement::Null))
+}
+
+fn statement(input: Span) -> IResult<Span, Statement> {
     alt((
         import_type_def,
         import_def,
@@ -1044,6 +1049,7 @@ fn statement<'a>(input: Span<'a>) -> IResult<Span<'a>, Statement> {
         export_default_statement,
         export_statement,
         expr_statement,
+        null_statement,
     ))(input)
 }
 
@@ -1202,6 +1208,46 @@ mod tests {
     fn test_type_object_entries() {
         let input = Span::new("{ foo: string, bar: number }");
         let r = type_object(input);
+        assert!(r.is_ok());
+    }
+
+    #[test]
+    fn test_statement() {
+        let input = Span::new("let x = 42;");
+        let r = statement(input);
+        assert!(r.is_ok());
+    }
+
+    #[test]
+    fn test_statement_w_whitespaces() {
+        let input = Span::new("\n let x = 42; \n");
+        let r = statement(input);
+        assert!(r.is_ok());
+    }
+
+    #[test]
+    fn test_statements() {
+        let input = Span::new("let x = 42; let y = 3.14;");
+        let r = statement(input);
+        assert!(r.is_ok());
+    }
+
+    #[test]
+    fn test_statements_w_whitespaces() {
+        let input = Span::new(
+            r#"
+            let x = 42;
+            let y = 3.14;
+        "#,
+        );
+        let r = statement(input);
+        assert!(r.is_ok());
+    }
+
+    #[test]
+    fn test_null_statement() {
+        let input = Span::new(r#";"#);
+        let r = statement(input);
         assert!(r.is_ok());
     }
 }

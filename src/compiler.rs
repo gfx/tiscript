@@ -318,6 +318,7 @@ impl Compiler {
         let mut last_result = None;
         for stmt in stmts {
             match stmt {
+                Statement::Null => {}
                 Statement::Expression(ex) => {
                     last_result = Some(self.compile_expr(ex)?);
                 }
