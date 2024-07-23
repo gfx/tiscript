@@ -740,6 +740,103 @@ fn if_statement(input: Span) -> IResult<Span, Statement> {
     ))
 }
 
+#[allow(dead_code) /* enum fields are not yet used */]
+#[derive(Debug, Clone, PartialEq)]
+enum ImportSpecifier<'a> {
+    ImportDefault(Span<'a>),              // import foo
+    ImportNamespace(Span<'a>),            // import * as foo
+    ImportNamed(Span<'a>),                // import { foo }
+    ImportNamedAlias(Span<'a>, Span<'a>), // import { foo as bar }
+}
+
+fn import_default(input: Span) -> IResult<Span, Vec<ImportSpecifier>> {
+    let (i, name) = space_delimited(identifier)(input)?;
+    Ok((i, vec![ImportSpecifier::ImportDefault(name)]))
+
+}
+
+fn import_namespace(input: Span) -> IResult<Span, Vec<ImportSpecifier>> {
+    let (i, _) = space_delimited(tag("*"))(input)?;
+    let (i, _) = space_delimited(tag("as"))(i)?;
+    let (i, name) = space_delimited(identifier)(i)?;
+    Ok((i, vec![ImportSpecifier::ImportNamespace(name)]))
+}
+
+fn import_named(input: Span) -> IResult<Span, Vec<ImportSpecifier>> {
+    let (i, (first, rest)) = delimited(
+        space_delimited(tag("{")),
+        pair(
+            pair(
+                space_delimited(identifier),
+                opt(preceded(
+                    space_delimited(tag("as")),
+                    space_delimited(identifier),
+                )),
+            ),
+            many0(preceded(
+                space_delimited(tag(",")),
+                pair(
+                    space_delimited(identifier),
+                    opt(preceded(
+                        space_delimited(tag("as")),
+                        space_delimited(identifier),
+                    )),
+                ),
+            )),
+        ),
+        space_delimited(tag("}")),
+    )(input)?;
+
+    let mut list = Vec::new();
+
+    let (name, alias) = first;
+    if let Some(alias) = alias {
+        list.push(ImportSpecifier::ImportNamedAlias(name, alias));
+    } else {
+        list.push(ImportSpecifier::ImportNamed(name));
+    }
+
+    for (name, alias) in rest {
+        if let Some(alias) = alias {
+            list.push(ImportSpecifier::ImportNamedAlias(name, alias));
+        } else {
+            list.push(ImportSpecifier::ImportNamed(name));
+        }
+    }
+
+    Ok((i, list))
+}
+
+// IMPORT_LIST from MODULE_SPECIFIER;
+fn import_list_from_module(input: Span) -> IResult<Span, Span> {
+    // import type IMPORT_LIST from "module";
+
+    let (i, _) = alt((
+        import_default,
+        import_namespace,
+        import_named,
+    ))(input)?;
+
+    let (i, _) = space_delimited(tag("from"))(i)?;
+    let (i, _) = space_delimited(alt((dq_str_literal, sq_str_literal)))(i)?;
+    let (i, _) = space_delimited(tag(";"))(i)?;
+
+    Ok((i, input))
+}
+
+fn import_def(input: Span) -> IResult<Span, Statement> {
+    let (i, _) = space_delimited(tag("import"))(input)?;
+    let (i, _) = import_list_from_module(i)?;
+    Ok((i, Statement::Import { span: input }))
+}
+
+fn import_type_def(input: Span) -> IResult<Span, Statement> {
+    let (i, _) = space_delimited(tag("import"))(input)?;
+    let (i, _) = space_delimited(tag("type"))(i)?;
+    let (i, _) = import_list_from_module(i)?;
+    Ok((i, Statement::ImportType { span: input }))
+}
+
 fn variable_def<'a>(
     span: Span<'a>,
     i: Span<'a>,
@@ -829,12 +926,7 @@ fn type_primitive(i: Span) -> IResult<Span, TypeDecl> {
             "number" => TypeDecl::Num,
             "bigint" => TypeDecl::Int,
             "string" => TypeDecl::Str,
-            _ => {
-                return Err(nom::Err::Error(Error::new(
-                    td,
-                    nom::error::ErrorKind::Verify,
-                )));
-            }
+            _ => TypeDecl::Any,
         },
     ))
 }
@@ -945,6 +1037,8 @@ fn general_statement<'a>(last: bool) -> impl Fn(Span<'a>) -> IResult<Span<'a>, S
     };
     move |input| {
         alt((
+            import_type_def,
+            import_def,
             var_def,
             let_def,
             const_def,

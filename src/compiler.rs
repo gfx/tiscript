@@ -317,6 +317,8 @@ impl Compiler {
                 Statement::Expression(ex) => {
                     last_result = Some(self.compile_expr(ex)?);
                 }
+                Statement::Import { .. } => { /* TODO */ }
+                Statement::ImportType { .. } => { /* TODO */ }
                 Statement::VarDef { name, ex, .. } => {
                     let mut ex = self.compile_expr(ex)?;
                     if !matches!(self.target_stack[ex.0], Target::Temp) {

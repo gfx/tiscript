@@ -287,7 +287,11 @@ fn tc_expr<'src>(
         Ne(lhs, rhs) => tc_binary_ee(lhs, rhs, ctx, "!=")?,
         Eee(_lhs, _rhs) => Ok(TypeDecl::Bool)?,
         Nee(_lhs, _rhs) => Ok(TypeDecl::Bool)?,
-        Ternary { cond, true_branch, false_branch } => {
+        Ternary {
+            cond,
+            true_branch,
+            false_branch,
+        } => {
             let _ = tc_expr(cond, ctx)?;
 
             let true_type = tc_expr(true_branch, ctx)?;
@@ -311,6 +315,15 @@ pub fn type_check<'src>(
     let mut res = TypeDecl::Any;
     for stmt in stmts {
         match stmt {
+            Statement::Import { span, .. } => {
+                return Err(TypeCheckError::new(
+                    "import statement is not yet supported.".into(),
+                    *span,
+                ));
+            }
+            Statement::ImportType { .. } => {
+                // TODO
+            }
             Statement::VarDef { name, td, ex, .. } => {
                 let mut init_type = tc_expr(ex, ctx)?;
                 if let Some(td) = td {

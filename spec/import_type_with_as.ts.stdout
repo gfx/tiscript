@@ -1,0 +1,18 @@
+{
+  "bar": {
+    "one": 1,
+    "two": 2
+  },
+  "foo": {
+    "key": "foo",
+    "value": "bar"
+  },
+  "nsFoo": {
+    "key": "FOO",
+    "value": "BAR"
+  },
+  "one": {
+    "key": "hoge",
+    "value": "fuga"
+  }
+}
