@@ -5,7 +5,7 @@ use nom::{
     combinator::{cut, map, map_opt, map_res, opt, recognize, value, verify},
     error::ParseError,
     multi::{fold_many0, many0, many1, separated_list0},
-    sequence::{delimited, pair, preceded, terminated, tuple},
+    sequence::{delimited, pair, preceded, tuple},
     Finish, IResult, InputTake, Offset, Parser,
 };
 
@@ -46,6 +46,14 @@ where
     E: ParseError<Span<'src>>,
 {
     delimited(multispace0, f, multispace0)
+}
+
+// end of statement: semicolon or newline
+fn eos<'src>(input: Span<'src>) -> IResult<Span<'src>, char> {
+    alt((
+        space_delimited(char(';')),
+        preceded(multispace0, char('\n')),
+    ))(input)
 }
 
 /// Calculate offset between the start positions of the input spans and return a span between them.
@@ -814,7 +822,7 @@ fn import_list_from_module(input: Span) -> IResult<Span, Span> {
 
     let (i, _) = space_delimited(tag("from"))(i)?;
     let (i, _) = space_delimited(alt((dq_str_literal, sq_str_literal)))(i)?;
-    let (i, _) = space_delimited(tag(";"))(i)?;
+    let (i, _) = eos(i)?;
 
     Ok((i, input))
 }
@@ -852,7 +860,7 @@ fn variable_def<'a>(
 
         let (i, _) = space_delimited(char('='))(i)?;
         let (i, ex) = space_delimited(expr)(i)?;
-        let (i, _) = space_delimited(char(';'))(i)?;
+        let (i, _) = eos(i)?;
         Ok((i, (name, td, ex)))
     })(i)?;
     Ok((
@@ -890,7 +898,7 @@ fn var_assign(i: Span) -> IResult<Span, Statement> {
     let (i, name) = space_delimited(identifier)(i)?;
     let (i, _) = space_delimited(char('='))(i)?;
     let (i, ex) = space_delimited(expr)(i)?;
-    let (i, _) = space_delimited(char(';'))(i)?;
+    let (i, _) = eos(i)?;
     Ok((
         i,
         Statement::VarAssign {
@@ -903,6 +911,7 @@ fn var_assign(i: Span) -> IResult<Span, Statement> {
 
 fn expr_statement(i: Span) -> IResult<Span, Statement> {
     let (i, res) = expr(i)?;
+    let (i, _) = eos(i)?;
     Ok((i, Statement::Expression(res)))
 }
 
@@ -986,6 +995,7 @@ fn export_default_statement(i: Span) -> IResult<Span, Statement> {
     let (i, _) = space_delimited(tag("export"))(i)?;
     let (i, _) = space_delimited(tag("default"))(i)?;
     let (i, ex) = space_delimited(expr)(i)?;
+    let (i, _) = eos(i)?;
     Ok((i, Statement::ExportDefault(ex)))
 }
 
@@ -1008,62 +1018,39 @@ fn export_statement(i: Span) -> IResult<Span, Statement> {
 fn return_statement(i: Span) -> IResult<Span, Statement> {
     let (i, _) = space_delimited(tag("return"))(i)?;
     let (i, ex) = space_delimited(expr)(i)?;
-    let (i, _) = tag(";")(i)?;
+    let (i, _) = eos(i)?;
     Ok((i, Statement::Return(ex)))
 }
 
 fn yield_statement(i: Span) -> IResult<Span, Statement> {
     let (i, _) = space_delimited(tag("yield"))(i)?;
     let (i, ex) = cut(space_delimited(expr))(i)?;
+    let (i, _) = eos(i)?;
     Ok((i, Statement::Yield(ex)))
 }
 
-fn general_statement<'a>(last: bool) -> impl Fn(Span<'a>) -> IResult<Span<'a>, Statement> {
-    let terminator = move |i| -> IResult<Span, ()> {
-        let mut semicolon = pair(tag(";"), multispace0);
-        if last {
-            Ok((opt(semicolon)(i)?.0, ()))
-        } else {
-            Ok((semicolon(i)?.0, ()))
-        }
-    };
-    move |input| {
-        alt((
-            import_type_def,
-            import_def,
-            var_def,
-            let_def,
-            const_def,
-            var_assign,
-            if_statement,
-            fn_def_statement,
-            return_statement,
-            yield_statement,
-            export_default_statement,
-            export_statement,
-            terminated(expr_statement, terminator),
-        ))(input)
-    }
-}
-
-pub(crate) fn last_statement(input: Span) -> IResult<Span, Statement> {
-    let (input, _) = many0(alt((line_comment, block_comment)))(input)?;
-    general_statement(true)(input)
-}
-
-pub(crate) fn statement(input: Span) -> IResult<Span, Statement> {
-    let (input, _) = many0(alt((line_comment, block_comment)))(input)?;
-    general_statement(false)(input)
+fn statement<'a>(input: Span<'a>) -> IResult<Span<'a>, Statement> {
+    alt((
+        import_type_def,
+        import_def,
+        var_def,
+        let_def,
+        const_def,
+        var_assign,
+        if_statement,
+        fn_def_statement,
+        return_statement,
+        yield_statement,
+        export_default_statement,
+        export_statement,
+        expr_statement,
+    ))(input)
 }
 
 fn statements(i: Span) -> IResult<Span, Statements> {
     let (i, _) = opt(shebang)(i)?;
-    let (i, mut stmts) = many0(statement)(i)?;
-    let (i, last) = opt(last_statement)(i)?;
+    let (i, stmts) = many0(statement)(i)?;
     let (i, _) = many0(alt((multispace1, line_comment, block_comment)))(i)?;
-    if let Some(last) = last {
-        stmts.push(last);
-    }
     Ok((i, stmts))
 }
 
