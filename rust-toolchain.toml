@@ -1,5 +1,5 @@
 [toolchain]
 channel = "stable"
-version = "1.79.0"
+version = "1.80.0"
 components = ["rustfmt", "clippy"]
 
