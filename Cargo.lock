@@ -166,7 +166,6 @@ dependencies = [
 name = "tiscript"
 version = "0.0.1"
 dependencies = [
- "bytecount",
  "ctor",
  "indexmap",
  "memchr",
