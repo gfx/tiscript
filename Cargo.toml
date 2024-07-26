@@ -1,7 +1,11 @@
 [package]
 name = "tiscript"
+description = "Turing-Incomplete TypeScript as a Configuration Language"
 version = "0.0.1"
 edition = "2021"
+license-file = "LICENSE"
+repository = "https://github.com/gfx/tiscript"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
