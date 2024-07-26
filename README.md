@@ -87,7 +87,7 @@ struct EditorConfig {
 }
 
 fn main() {
-    let editorConfig: EditorConfig = from_file(r#"
+    let editorConfig: EditorConfig = from_str(r#"
         const LF = "\x0A";
 
         export const tabSize = 4;
