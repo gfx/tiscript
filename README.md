@@ -13,7 +13,7 @@ This is a work in progress. **The current implementation is MVP** and not intend
 
 ## Example
 
-TiScript definition (it's 100% compatible with TypeScript):
+TiScript definition (it's strict subset of TypeScript):
 
 ```ts
 // editor_config.ts
