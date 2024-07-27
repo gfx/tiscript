@@ -66,6 +66,8 @@ struct EditorConfig {
 
 fn main() {
     let editorConfig: EditorConfig = from_file("./editor_config.ts").unwrap();
+    // or from_file_with_timeout(f, d) for untrusted code
+
     println!("{:?}", editorConfig);
 }
 ```
@@ -95,7 +97,9 @@ fn main() {
         export const endOfLine = LF;
         export const encoding = "utf-8";
     "#).unwrap();
-    println!("{:?}", editorConfig);
+    // or from_str_with_timeout(f, d) for untrusted code
+
+println!("{:?}", editorConfig);
 }
 ```
 
