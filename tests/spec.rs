@@ -4,7 +4,7 @@ use std::{fs, path::Path};
 
 use pretty_assertions::assert_eq;
 
-use tiscript::util::eval;
+use tiscript::util::{eval, EvalOptions};
 
 #[derive(Debug)]
 struct Spec {
@@ -76,7 +76,7 @@ fn test_evaluate_specs_that_should_pass() -> Result<(), Box<dyn std::error::Erro
             continue;
         }
         let source = fs::read_to_string(&spec.filename)?;
-        let result = eval(&source, Path::new(&spec.filename));
+        let result = eval(&source, &EvalOptions::new_from_path_str(&spec.filename));
         let tiscript2json = run_tiscript2json(&spec.filename);
 
         assert!(result.is_ok(), "tiscript should pass in {}", spec.filename);
@@ -123,7 +123,7 @@ fn test_evaluate_specs_that_should_fail() -> Result<(), Box<dyn std::error::Erro
             continue;
         }
         let source = fs::read_to_string(&spec.filename)?;
-        let result = eval(&source, Path::new(&spec.filename));
+        let result = eval(&source, &EvalOptions::new_from_path_str(&spec.filename));
         let tiscript2json = run_tiscript2json(&spec.filename);
 
         assert!(result.is_err());

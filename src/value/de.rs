@@ -1,9 +1,9 @@
-use std::{path::Path, str::FromStr};
+use std::str::FromStr;
 
 use serde::de::{Deserialize, DeserializeSeed, IntoDeserializer, SeqAccess, Unexpected, Visitor};
 
 use crate::{
-    util::eval,
+    util::{eval, EvalOptions},
     value::{Array, Map, Value},
 };
 
@@ -494,6 +494,6 @@ where
 impl FromStr for Value {
     type Err = Box<dyn std::error::Error>;
     fn from_str(s: &str) -> Result<Value, Self::Err> {
-        eval(s, Path::new("<from_str>"))
+        eval(s, &EvalOptions::new_from_path_str("<from_str>"))
     }
 }

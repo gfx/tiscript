@@ -10,7 +10,10 @@ pub mod util;
 pub mod value;
 pub mod vm;
 
-pub use crate::de::{from_file, from_str};
+pub use crate::de::{
+    from_file, from_file_with_timeout, from_path, from_path_with_timeout, from_str,
+    from_str_with_timeout,
+};
 
 use std::sync::atomic::AtomicBool;
 

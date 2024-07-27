@@ -10,7 +10,7 @@ use tiscript::{
     compiler::Compiler,
     set_debug,
     type_checker::{type_check, TypeCheckContext},
-    util::{eval, parse_program},
+    util::{eval, parse_program, EvalOptions},
 };
 
 struct Params {
@@ -162,7 +162,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         compiler.disasm(&mut std::io::stdout().lock())?;
         return Ok(());
     }
-    let exports = eval(&params.source, Path::new(&params.source_file))?;
+    let exports = eval(
+        &params.source,
+        &EvalOptions::new_from_path_str(&params.source_file),
+    )?;
 
     let mut stdout = std::io::stdout().lock();
     if params.compact {
@@ -188,7 +191,7 @@ mod tests {
     }
 
     fn eval_to_json(source: &str) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-        let exports = eval(source, Path::new("test.ts"))?;
+        let exports = eval(source, &EvalOptions::new_from_path_str("test.ts"))?;
         let json = serde_json::ser::to_string(&exports)?;
         let json_object = serde_json::from_str(&json)?;
         Ok(json_object)
