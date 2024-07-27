@@ -1,4 +1,4 @@
-# TiScript - Turing-Incomplete TypeScript as a Configuration Language [![CI](https://github.com/gfx/tiscript/actions/workflows/ci.yml/badge.svg)](https://github.com/gfx/tiscript/actions/workflows/ci.yml)
+# TiScript - Turing-Incomplete TypeScript as a Configuration Language [![crates.io](https://img.shields.io/crates/v/tiscript.svg)](https://crates.io/crates/tiscript) [![CI](https://github.com/gfx/tiscript/actions/workflows/ci.yml/badge.svg)](https://github.com/gfx/tiscript/actions/workflows/ci.yml)
 
 TiScript is a configuration language designed to be intuitive and easy for humans and machines. It draws inspiration from TypeScript and JSON, offering the benefits of both:
 
