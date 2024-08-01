@@ -128,9 +128,11 @@ This is a list of features in ECMA-262 that are planned or implemented:
 * [x] `bigint` literals (actually 64-bit int)
 * [x] array literals
 * [x] object literals
+* [ ] index access (`[]`)
 * [ ] `typeof` operator
 * [ ] [WIP] arithmetic operators (`+`, `-`, `*`, `/`, `%`, `**`)
 * [x] bitwise operators (`~`, `&`, `|`, `^`, `<<`, `>>`, `>>>`)
+* [ ] assignment operators (`=`, `+=`, `-=`, `*=`, `/=`, `%=`, `**=`, `<<=`, `>>=`, `>>>=`, `&=`, `|=`, `^=`)
 * [x] comparison operators (`==`, `!=`, `===`, `!==`, `<`, `>`, `<=`, `>=`)
 * [ ] increment and decrement operators (`++`, `--`)
 * [x] ternary operator (`cond ? t : f`)
@@ -146,6 +148,8 @@ This is a list of features in ECMA-262 that are planned or implemented:
 * [ ] `do-while` loop (with restrictions)
 * [ ] exceptions (`Error`, `try-catch-finally`, `throw` and so on)
 * [ ] temporal module
+* [x] function declaration
+* [ ] arrow function
 * [x] function call
 * [ ] method call
 * [ ] [WIP] function declaration with `function` keyword
@@ -180,8 +184,8 @@ This is a list of features in TypeScript that are planned or implemented:
 * [ ] array type annotations
 * [ ] [WIP] object type annotations
 * [ ] type guards
-* [ ] `interface` statement
-* [ ] `type` statement
+* [ ] `interface` type statement
+* [ ] `type` type statement
 * [ ] `typeof` operator in type expressions
 * [ ] generics
 * [ ] null-assertion operator (trailing `!`)
