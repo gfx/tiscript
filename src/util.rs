@@ -3,7 +3,6 @@ use std::{error::Error, path::Path, rc::Rc, time::Duration};
 use crate::{
     ast::{Span, Statements},
     compiler::Compiler,
-    is_debug,
     parser::statements_finish,
     type_checker::{type_check, TypeCheckContext},
     value::Value,
@@ -14,6 +13,7 @@ use crate::{
 pub struct EvalOptions<'a> {
     pub source_file: &'a Path,
     pub timeout: Option<Duration>,
+    pub debug: bool,
 }
 
 impl<'a> EvalOptions<'a> {
@@ -21,6 +21,7 @@ impl<'a> EvalOptions<'a> {
         Self {
             source_file,
             timeout: None,
+            debug: false,
         }
     }
 
@@ -28,6 +29,7 @@ impl<'a> EvalOptions<'a> {
         Self {
             source_file,
             timeout: Some(timeout),
+            debug: false,
         }
     }
 
@@ -101,7 +103,7 @@ pub fn eval<'a>(
 
     check_timeout(t0, options)?;
 
-    let mut vm = Vm::new(bytecode, Box::new(()), is_debug());
+    let mut vm = Vm::new(bytecode, Box::new(()), options.debug);
     if let Err(e) = vm.init_fn("main", &[]) {
         return Err(format!("init_fn error: {e:?}").into());
     }

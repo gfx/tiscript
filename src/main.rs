@@ -182,16 +182,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ctor::ctor;
     use serde_json::json;
 
-    #[ctor]
-    fn init() {
-        set_debug(true);
-    }
-
     fn eval_to_json(source: &str) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-        let exports = eval(source, &EvalOptions::new_from_path_str("test.ts"))?;
+        let exports = eval(
+            source,
+            &EvalOptions {
+                source_file: Path::new("test.ts"),
+                timeout: None,
+                debug: true,
+            },
+        )?;
         let json = serde_json::ser::to_string(&exports)?;
         let json_object = serde_json::from_str(&json)?;
         Ok(json_object)
