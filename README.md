@@ -212,6 +212,10 @@ Note that **any features TiScript recognizes, but TypeScript compiler does not**
 
 If you'd like to develop this project, run `UPDATE=1 cargo test` to automatically generates `*.stdout` or `*.stderr` files in `spec/`.
 
+## WebAssembly
+
+This project is ensured to be built with `--target=wasm32-wasi` in CI. There's no test for WebAssembly though.
+
 ## Similar Works
 
 * JSON https://www.json.org/
