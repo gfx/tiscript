@@ -171,7 +171,7 @@ This is a list of features in TypeScript that are planned or implemented:
 * [ ] `unknown`
 * [ ] `never`
 * [ ] `as` type assertion
-* [ ] `satisfies` specifier
+* [x] `satisfies` type operator
 * [x] primitive type annotations
 * [ ] literal type annotations
 * [ ] union type annotations

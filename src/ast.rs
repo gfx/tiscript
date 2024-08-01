@@ -79,6 +79,7 @@ pub enum ExprEnum<'src> {
         true_branch: Box<Expression<'src>>,
         false_branch: Box<Expression<'src>>,
     },
+    Satisfies(Box<Expression<'src>>, TypeDecl),
     Await(Box<Expression<'src>>),
 }
 

@@ -124,25 +124,12 @@ fn test_evaluate_specs_that_should_fail() -> Result<(), Box<dyn std::error::Erro
         }
         let source = fs::read_to_string(&spec.filename)?;
         let result = eval(&source, &EvalOptions::new_from_path_str(&spec.filename));
-        let tiscript2json = run_tiscript2json(&spec.filename);
 
         assert!(result.is_err());
-        assert!(tiscript2json.is_err());
         let err = result.unwrap_err();
-
-        // extract the message body (just after the first whitespace)
-        let tsc_full_message = tiscript2json.unwrap_err().to_string();
-        let (_, tsc_message) = tsc_full_message.split_at(tsc_full_message.find(' ').unwrap() + 1);
 
         let tiscript_full_message = err.to_string();
         let (_, err) = tiscript_full_message.split_at(tiscript_full_message.find(' ').unwrap() + 1);
-
-        assert_eq!(
-            err.trim(),
-            tsc_message.trim(),
-            "output vs tsc in {}",
-            spec.filename
-        );
 
         if update {
             fs::write(

@@ -307,6 +307,16 @@ fn tc_expr<'src>(
         }
         Spread(_ex) => unreachable!("Spread operator should be handled in parser"),
         Entry(_key, _val) => unreachable!("Entry should be handled in parser"),
+        Satisfies(ex, td) => {
+            let res = tc_expr(ex, ctx)?;
+            if tc_coerce_type(&res, td, ex.span).is_err() {
+                return Err(TypeCheckError::new(
+                    format!("Type '{res}' does not satisfy the expected type '{td}'."),
+                    ex.span,
+                ));
+            }
+            res
+        }
     })
 }
 

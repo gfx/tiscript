@@ -680,6 +680,16 @@ fn cmp_expr(i0: Span) -> IResult<Span, Expression> {
     ))
 }
 
+fn satisfies_expr(input: Span) -> IResult<Span, Expression> {
+    let (i, ex) = term(input)?;
+    let (i, _) = space_delimited(tag("satisfies"))(i)?;
+    let (i, td) = cut(space_delimited(type_expr))(i)?;
+    Ok((
+        i,
+        Expression::new(ExprEnum::Satisfies(Box::new(ex), td), calc_offset(input, i)),
+    ))
+}
+
 fn await_expr(i: Span) -> IResult<Span, Expression> {
     let i0 = i;
     let (i, _) = space_delimited(tag("await"))(i)?;
@@ -691,7 +701,7 @@ fn await_expr(i: Span) -> IResult<Span, Expression> {
 }
 
 fn expr(input: Span) -> IResult<Span, Expression> {
-    let (i, ex) = alt((await_expr, cmp_expr, add_expr))(input)?;
+    let (i, ex) = alt((await_expr, satisfies_expr, cmp_expr, add_expr))(input)?;
 
     let Ok((i, _)) = char::<Span, Error>('?')(i) else {
         return Ok((i, ex));

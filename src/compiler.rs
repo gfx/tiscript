@@ -271,6 +271,7 @@ impl Compiler {
                 self.fixup_jmp(jmp_inst);
                 self.stack_top()
             }
+            ExprEnum::Satisfies(ex, _) => self.compile_expr(ex)?,
             ExprEnum::Await(ex) => {
                 let res = self.compile_expr(ex)?;
                 self.add_copy_inst(res);
