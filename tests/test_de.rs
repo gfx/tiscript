@@ -17,7 +17,7 @@ fn test_from_file() -> Result<(), Box<dyn std::error::Error>> {
     let editor_config: EditorConfig = from_file("./spec/readme.ts")?;
 
     assert_eq!(editor_config.tab_size, 4);
-    assert_eq!(editor_config.trim_trailing_whitespace, true);
+    assert!(editor_config.trim_trailing_whitespace);
     assert_eq!(editor_config.end_of_line, "\x0a");
     assert_eq!(editor_config.encoding, "utf-8");
 
@@ -38,7 +38,7 @@ fn test_from_path() -> Result<(), Box<dyn std::error::Error>> {
     let editor_config: EditorConfig = from_path(Path::new("./spec/readme.ts"))?;
 
     assert_eq!(editor_config.tab_size, 4);
-    assert_eq!(editor_config.trim_trailing_whitespace, true);
+    assert!(editor_config.trim_trailing_whitespace);
     assert_eq!(editor_config.end_of_line, "\x0a");
     assert_eq!(editor_config.encoding, "utf-8");
 
@@ -65,7 +65,7 @@ fn test_deserialize_scalars() -> Result<(), Box<dyn std::error::Error>> {
     )
     .unwrap();
     assert_eq!(value.foo, "hello");
-    assert_eq!(value.bar, true);
+    assert!(value.bar);
     assert_eq!(value.baz, 3.14);
     assert_eq!(value.bax, 42);
 

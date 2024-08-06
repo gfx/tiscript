@@ -19,7 +19,10 @@ pub trait GetSpan<'a> {
 
 impl<'a> GetSpan<'a> for Statements<'a> {
     fn span(&self) -> Span<'a> {
-        self.iter().find_map(|stmt| stmt.span()).unwrap()
+        self.iter()
+            .find_map(|stmt| stmt.span())
+            .or_else(|| Some(Span::new("")))
+            .unwrap()
     }
 }
 
@@ -735,7 +738,7 @@ fn close_brace(i: Span) -> IResult<Span, ()> {
 }
 
 fn block_statement(i: Span) -> IResult<Span, Statement> {
-    let (i, stmts) = delimited(open_brace, statements, close_brace)(i)?;
+    let (i, stmts) = delimited(open_brace, |input| statements(input, false), close_brace)(i)?;
     Ok((i, Statement::Block(stmts)))
 }
 
@@ -986,7 +989,7 @@ fn fn_def_statement(i: Span) -> IResult<Span, Statement> {
         } else {
             ret_type = None;
         }
-        let (i, stmts) = delimited(open_brace, statements, close_brace)(i)?;
+        let (i, stmts) = delimited(open_brace, |input| statements(input, false), close_brace)(i)?;
         Ok((i, (name, args, ret_type, stmts)))
     })(i)?;
     Ok((
@@ -1063,15 +1066,20 @@ fn statement(input: Span) -> IResult<Span, Statement> {
     ))(input)
 }
 
-fn statements(i: Span) -> IResult<Span, Statements> {
-    let (i, _) = opt(shebang)(i)?;
+fn statements(input: Span, main: bool) -> IResult<Span, Statements> {
+    let i = if main {
+        let (input, _) = opt(shebang)(input)?;
+        input
+    } else {
+        input
+    };
     let (i, stmts) = many0(statement)(i)?;
     let (i, _) = many0(alt((multispace1, line_comment, block_comment)))(i)?;
     Ok((i, stmts))
 }
 
 pub fn statements_finish(i: Span) -> Result<Statements, Error> {
-    let (_, res) = statements(i).finish()?;
+    let (_, res) = statements(i, true).finish()?;
     Ok(res)
 }
 

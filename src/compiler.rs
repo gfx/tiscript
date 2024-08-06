@@ -55,7 +55,12 @@ impl Compiler {
     }
 
     fn stack_top(&self) -> StkIdx {
-        StkIdx(self.target_stack.len() - 1)
+        let Some(top) = self.target_stack.len().checked_sub(1) else {
+            eprintln!("Target stack underflow during compilation! Compiled bytecode so far:");
+            disasm_common(&self.literals, &self.instructions, &mut std::io::stderr()).unwrap();
+            panic!();
+        };
+        StkIdx(top)
     }
 
     fn add_literal(&mut self, value: Value) -> u8 {
