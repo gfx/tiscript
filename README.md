@@ -109,7 +109,7 @@ TBD
 
 ## Features
 
-This is a list of features in ECMA-262 that are planned or implemented:
+This is a list of features in ECMA-262 that are planned or implemented ("[x]" does not necessarily mean it's 100% compatible with TypeScript and ECMA-262):
 
 * [x] shebang
 * [x] line and block comments
@@ -152,7 +152,7 @@ This is a list of features in ECMA-262 that are planned or implemented:
 * [ ] arrow function
 * [x] function call
 * [ ] method call
-* [ ] [WIP] function declaration with `function` keyword
+* [x] function declaration with `function` keyword
 * [ ] arrow function
 * [ ] function as a first-class object
 * [ ] generator function (`function*`)
@@ -185,7 +185,7 @@ This is a list of features in TypeScript that are planned or implemented:
 * [ ] [WIP] object type annotations
 * [ ] type guards
 * [ ] `interface` type statement
-* [ ] `type` type statement
+* [x] `type` type statement
 * [ ] `typeof` operator in type expressions
 * [ ] generics
 * [ ] null-assertion operator (trailing `!`)
