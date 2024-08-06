@@ -358,7 +358,7 @@ impl Compiler {
                     last_result = Some(ex);
                 }
                 Statement::Block(stmts) => {
-                    last_result = Some(self.compile_stmts_or_nop(stmts)?);
+                    last_result = Some(self.compile_stmts_or_none(stmts)?);
                 }
                 Statement::If {
                     cond,
@@ -372,7 +372,7 @@ impl Compiler {
                     let Statement::Block(true_branch) = &**true_branch else {
                         unreachable!()
                     };
-                    self.compile_stmts_or_nop(true_branch)?;
+                    self.compile_stmts_or_none(true_branch)?;
                     self.coerce_stack(StkIdx(stack_size_before + 1));
                     let jmp_inst = self.add_inst(OpCode::Jmp, 0);
                     self.fixup_jmp(jf_inst);
@@ -381,10 +381,10 @@ impl Compiler {
                         // false branch may be a If statement or a Block statement.
                         match &**false_branch {
                             Statement::Block(false_branch) => {
-                                self.compile_stmts_or_nop(false_branch)?;
+                                self.compile_stmts_or_none(false_branch)?;
                             }
                             Statement::If { .. } => {
-                                self.compile_stmts_or_nop(&vec![(**false_branch).clone()])?;
+                                self.compile_stmts_or_none(&vec![(**false_branch).clone()])?;
                             }
                             _ => unreachable!(),
                         }
@@ -453,16 +453,17 @@ impl Compiler {
         Ok(last_result)
     }
 
-    fn compile_stmts_or_nop(&mut self, stmts: &Statements) -> Result<StkIdx, Box<dyn Error>> {
+    fn compile_stmts_or_none(&mut self, stmts: &Statements) -> Result<StkIdx, Box<dyn Error>> {
         Ok(self.compile_stmts(stmts)?.unwrap_or_else(|| {
-            self.add_inst(OpCode::Nop, 0);
+            let id = self.add_literal(Default::default());
+            self.add_load_literal_inst(id);
             self.stack_top()
         }))
     }
 
     pub fn compile(&mut self, stmts: &Statements) -> Result<(), Box<dyn std::error::Error>> {
         let name = "main";
-        self.compile_stmts_or_nop(stmts)?;
+        self.compile_stmts_or_none(stmts)?;
         self.add_fn(name.to_string(), &[], false);
         Ok(())
     }
