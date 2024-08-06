@@ -111,7 +111,7 @@ pub enum Statement<'src> {
         span: Span<'src>,
         name: Span<'src>,
         td: Option<TypeDecl>,
-        ex: Expression<'src>,
+        init: Option<Expression<'src>>,
         is_const: bool,
         is_var: bool,
     },

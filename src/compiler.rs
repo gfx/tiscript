@@ -330,14 +330,19 @@ impl Compiler {
                 }
                 Statement::Import { .. } => { /* TODO */ }
                 Statement::ImportType { .. } => { /* TODO */ }
-                Statement::VarDef { name, ex, .. } => {
-                    let mut ex = self.compile_expr(ex)?;
-                    if !matches!(self.target_stack[ex.0], Target::Temp) {
-                        self.add_copy_inst(ex);
-                        ex = self.stack_top();
+                Statement::VarDef { name, init, .. } => {
+                    let undef_expr = Expression {
+                        expr: ExprEnum::UndefinedLiteral,
+                        span: Span::new(""),
+                    };
+                    let init = init.as_ref().unwrap_or(&undef_expr);
+                    let mut init = self.compile_expr(&init)?;
+                    if !matches!(self.target_stack[init.0], Target::Temp) {
+                        self.add_copy_inst(init);
+                        init = self.stack_top();
                     }
-                    self.target_stack[ex.0] = Target::Local(name.to_string());
-                    last_result = Some(ex);
+                    self.target_stack[init.0] = Target::Local(name.to_string());
+                    last_result = Some(init);
                 }
                 Statement::VarAssign { name, ex, .. } => {
                     let ex = self.compile_expr(ex)?;

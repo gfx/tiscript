@@ -859,7 +859,7 @@ fn variable_def<'a>(
     is_const: bool,
     is_var: bool,
 ) -> IResult<Span<'a>, Statement<'a>> {
-    let (i, (name, td, ex)) = cut(|i| {
+    let (i, (name, td, init)) = cut(|i| {
         let (i, name) = space_delimited(identifier)(i)?;
 
         // type declaration is optional
@@ -871,10 +871,12 @@ fn variable_def<'a>(
             td = Some(actual_td);
         }
 
-        let (i, _) = space_delimited(char('='))(i)?;
-        let (i, ex) = space_delimited(expr)(i)?;
+        let (i, init) = opt(|input| {
+            let (i, _) = space_delimited(char('='))(input)?;
+            space_delimited(expr)(i)
+        })(i)?;
         let (i, _) = eos(i)?;
-        Ok((i, (name, td, ex)))
+        Ok((i, (name, td, init)))
     })(i)?;
     Ok((
         i,
@@ -882,7 +884,7 @@ fn variable_def<'a>(
             span: calc_offset(span, i),
             name,
             td,
-            ex,
+            init,
             is_const,
             is_var,
         },

@@ -341,7 +341,7 @@ pub fn type_check<'src>(
             Statement::VarDef {
                 name,
                 td,
-                ex,
+                init,
                 is_var,
                 is_const,
                 ..
@@ -352,10 +352,24 @@ pub fn type_check<'src>(
                         *name,
                     ));
                 }
-                let mut init_type = tc_expr(ex, ctx)?;
-                if let Some(td) = td {
-                    init_type = tc_coerce_type(&init_type, td, ex.span)?;
+
+                if *is_const && init.is_none() {
+                    return Err(TypeCheckError::new(
+                        "'const' declaration must be initialized.".into(),
+                        *name,
+                    ));
                 }
+
+                let init_type = if let Some(init) = init {
+                    let init_type = tc_expr(init, ctx)?;
+                    if let Some(td) = td {
+                        tc_coerce_type(&init_type, td, init.span)?
+                    } else {
+                        init_type
+                    }
+                } else {
+                    TypeDecl::Any
+                };
                 ctx.vars.insert(
                     **name,
                     VarDecl {
