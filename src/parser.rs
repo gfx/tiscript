@@ -922,6 +922,16 @@ fn var_assign(i: Span) -> IResult<Span, Statement> {
     ))
 }
 
+fn type_def(input: Span) -> IResult<Span, Statement> {
+    // type foo = bar;
+    let (i, _) = space_delimited(tag("type"))(input)?;
+    let (i, name) = space_delimited(identifier)(i)?;
+    let (i, _) = space_delimited(char('='))(i)?;
+    let (i, td) = space_delimited(type_expr)(i)?;
+    let (i, _) = eos(i)?;
+    Ok((i, Statement::Type { name, td }))
+}
+
 fn expr_statement(i: Span) -> IResult<Span, Statement> {
     let (i, res) = expr(i)?;
     let (i, _) = eos(i)?;
@@ -1055,6 +1065,7 @@ fn statement(input: Span) -> IResult<Span, Statement> {
         let_def,
         const_def,
         var_assign,
+        type_def,
         if_statement,
         fn_def_statement,
         return_statement,

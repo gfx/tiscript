@@ -2,7 +2,7 @@ use std::{collections::HashMap, error::Error, io::Write, rc::Rc};
 
 use crate::{
     ast::{ExprEnum, Expression, Span, Statement, Statements, TypeDecl},
-    bytecode::{standard_functions, ByteCode, FnByteCode, FnDecl, FnDef},
+    bytecode::{global_functions, ByteCode, FnByteCode, FnDecl, FnDef},
     instructions::{Instruction, OpCode},
     value::Value,
 };
@@ -37,7 +37,7 @@ impl Compiler {
     }
 
     pub fn into_bytecode(self) -> ByteCode {
-        let mut funcs: HashMap<_, _> = standard_functions()
+        let mut funcs: HashMap<_, _> = global_functions()
             .into_iter()
             .filter_map(|(name, f)| {
                 if let FnDecl::Native(f) = f {
@@ -447,6 +447,9 @@ impl Compiler {
                         }
                     }
                     self.add_inst(OpCode::Export, 0);
+                }
+                Statement::Type { .. } => {
+                    /* TODO: this interpreter may check types in runtime */
                 }
             }
         }

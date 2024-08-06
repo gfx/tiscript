@@ -137,6 +137,11 @@ pub enum Statement<'src> {
     Yield(Expression<'src>),
     ExportDefault(Expression<'src>),
     Export(Statements<'src>), // stmts.len() == 1
+
+    Type {
+        name: Span<'src>,
+        td: TypeDecl,
+    },
 }
 
 impl<'src> Statement<'src> {
@@ -156,6 +161,7 @@ impl<'src> Statement<'src> {
             Statement::Yield(ex) => Some(ex.span),
             Statement::ExportDefault(ex) => Some(ex.span),
             Statement::Export(stmts) => stmts[0].span(),
+            Statement::Type { name, .. } => Some(*name),
         }
     }
 }

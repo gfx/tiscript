@@ -2,29 +2,29 @@ use std::{collections::HashMap, error::Error};
 
 use crate::{
     ast::{ExprEnum, Expression, Span, Statement, TypeDecl},
-    bytecode::{standard_functions, FnDecl, NativeFn, UserFn},
+    bytecode::{
+        global_functions, global_type_variables, global_variables, FnDecl, NativeFn, UserFn,
+        VarDecl,
+    },
     parser::GetSpan,
 };
 
 pub struct TypeCheckContext<'src, 'ctx> {
     /// Variables table for type checking.
     vars: HashMap<&'src str, VarDecl>,
+    // Type variables for type checking
+    type_vars: HashMap<&'src str, TypeDecl>,
     /// Function names are owned strings because it can be either from source or native.
     funcs: HashMap<String, FnDecl<'src>>,
     super_context: Option<&'ctx TypeCheckContext<'src, 'ctx>>,
 }
 
-#[derive(Debug, Clone)]
-pub struct VarDecl {
-    pub td: TypeDecl,
-    pub is_const: bool,
-}
-
 impl Default for TypeCheckContext<'_, '_> {
     fn default() -> Self {
         Self {
-            vars: HashMap::new(),
-            funcs: standard_functions(),
+            vars: global_variables(),
+            type_vars: global_type_variables(),
+            funcs: global_functions(),
             super_context: None,
         }
     }
@@ -52,6 +52,7 @@ impl<'src, 'ctx> TypeCheckContext<'src, 'ctx> {
     fn push_stack(super_ctx: &'ctx Self) -> Self {
         Self {
             vars: HashMap::new(),
+            type_vars: HashMap::new(),
             funcs: HashMap::new(),
             super_context: Some(super_ctx),
         }
@@ -458,6 +459,15 @@ pub fn type_check<'src>(
             }
             Statement::Export(stmts) => {
                 res = type_check(stmts, ctx)?;
+            }
+            Statement::Type { name, td } => {
+                if ctx.type_vars.contains_key(**name) {
+                    return Err(TypeCheckError::new(
+                        format!("Duplicate identifier '{}'.", name),
+                        *name,
+                    ));
+                }
+                ctx.type_vars.insert(**name, *td);
             }
         }
     }

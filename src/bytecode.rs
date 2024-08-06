@@ -131,10 +131,26 @@ pub enum FnDef {
     Native(NativeFn<'static>),
 }
 
-type Functions<'src> = HashMap<String, FnDecl<'src>>;
+#[derive(Debug, Clone)]
+pub struct VarDecl {
+    pub td: TypeDecl,
+    pub is_const: bool,
+}
 
-pub(crate) fn standard_functions<'src>() -> Functions<'src> {
-    let mut funcs = Functions::new();
+pub(crate) fn global_variables() -> HashMap<&'static str, VarDecl> {
+    let vars = HashMap::new();
+    // TODO
+    vars
+}
+
+pub(crate) fn global_type_variables() -> HashMap<&'static str, TypeDecl> {
+    let vars = HashMap::new();
+    // TODO
+    vars
+}
+
+pub(crate) fn global_functions<'src>() -> HashMap<String, FnDecl<'src>> {
+    let mut funcs: HashMap<String, FnDecl> = HashMap::new();
 
     funcs.insert(
         "Array.of".to_string(),
