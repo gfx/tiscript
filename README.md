@@ -128,7 +128,8 @@ This is a list of features in ECMA-262 that are planned or implemented ("[x]" do
 * [x] `bigint` literals (actually 64-bit int)
 * [x] array literals
 * [x] object literals
-* [ ] index access (`[]`)
+* [ ] index access (`[0]` and `.["foo"]`)
+* [ ] property access (`.foo`)
 * [ ] `typeof` operator
 * [ ] [WIP] arithmetic operators (`+`, `-`, `*`, `/`, `%`, `**`)
 * [x] bitwise operators (`~`, `&`, `|`, `^`, `<<`, `>>`, `>>>`)
@@ -166,7 +167,9 @@ This is a list of features in ECMA-262 that are planned or implemented ("[x]" do
 * [ ] `String` instance methods
 * [ ] `Number` class methods
 * [ ] `Number` instance methods
+* [ ] `TextEncoder`
 * [ ] `Intl` / ECMA-402
+* [ ] `atob` and `btoa`
 
 This is a list of features in TypeScript that are planned or implemented:
 
