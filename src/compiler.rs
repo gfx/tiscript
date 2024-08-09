@@ -337,7 +337,7 @@ impl Compiler {
                         span: Span::new(""),
                     };
                     let init = init.as_ref().unwrap_or(&undef_expr);
-                    let mut init = self.compile_expr(&init)?;
+                    let mut init = self.compile_expr(init)?;
                     if !matches!(self.target_stack[init.0], Target::Temp) {
                         self.add_copy_inst(init);
                         init = self.stack_top();

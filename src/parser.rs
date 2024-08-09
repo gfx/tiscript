@@ -148,7 +148,6 @@ fn factor(input: Span) -> IResult<Span, Expression> {
             span: input,
         },
     ))
-
 }
 
 fn func_call(i: Span) -> IResult<Span, Expression> {
