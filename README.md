@@ -154,7 +154,6 @@ This is a list of features in ECMA-262 that are planned or implemented ("[x]" do
 * [x] function call
 * [ ] method call
 * [x] function declaration with `function` keyword
-* [ ] arrow function
 * [ ] function as a first-class object
 * [ ] generator function (`function*`)
 * [ ] limited recursive calls of functions
