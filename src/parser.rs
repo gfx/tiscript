@@ -595,7 +595,7 @@ fn parens(i: Span) -> IResult<Span, Expression> {
     space_delimited(delimited(tag("("), expr, tag(")")))(i)
 }
 
-fn term(i: Span) -> IResult<Span, Expression> {
+fn multiply_op(i: Span) -> IResult<Span, Expression> {
     let (r, init) = unary_op(i)?;
 
     let res = fold_many0(
@@ -618,7 +618,7 @@ fn term(i: Span) -> IResult<Span, Expression> {
 }
 
 fn add_expr(i: Span) -> IResult<Span, Expression> {
-    let (r, init) = term(i)?;
+    let (r, init) = multiply_op(i)?;
 
     let res = fold_many0(
         pair(
@@ -632,7 +632,7 @@ fn add_expr(i: Span) -> IResult<Span, Expression> {
                 tag(">>>"),
                 tag(">>"),
             ))),
-            term,
+            multiply_op,
         ),
         move || init.clone(),
         |acc, (op, val)| {
@@ -684,7 +684,7 @@ fn cmp_expr(i0: Span) -> IResult<Span, Expression> {
 }
 
 fn satisfies_expr(input: Span) -> IResult<Span, Expression> {
-    let (i, ex) = term(input)?;
+    let (i, ex) = multiply_op(input)?;
     let (i, _) = space_delimited(tag("satisfies"))(i)?;
     let (i, td) = cut(space_delimited(type_expr))(i)?;
     Ok((
