@@ -275,6 +275,7 @@ fn tc_expr<'src>(
         Mul(lhs, rhs) => tc_bin_arithmetic_op(lhs, rhs, ctx, "*")?,
         Div(lhs, rhs) => tc_bin_arithmetic_op(lhs, rhs, ctx, "/")?,
         Mod(lhs, rhs) => tc_bin_arithmetic_op(lhs, rhs, ctx, "%")?,
+        Pow(lhs, rhs) => tc_bin_arithmetic_op(lhs, rhs, ctx, "**")?,
         BwAnd(lhs, rhs) => tc_bin_arithmetic_op(lhs, rhs, ctx, "&")?,
         BwOr(lhs, rhs) => tc_bin_arithmetic_op(lhs, rhs, ctx, "|")?,
         BwXor(lhs, rhs) => tc_bin_arithmetic_op(lhs, rhs, ctx, "^")?,

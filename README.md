@@ -131,7 +131,7 @@ This is a list of features in ECMA-262 that are planned or implemented ("[x]" do
 * [ ] index access (`[0]` and `.["foo"]`)
 * [ ] property access (`.foo`)
 * [ ] `typeof` operator
-* [ ] [WIP] arithmetic operators (`+`, `-`, `*`, `/`, `%`, `**`)
+* [x] arithmetic operators (`+`, `-`, `*`, `/`, `%`, `**`)
 * [x] bitwise operators (`~`, `&`, `|`, `^`, `<<`, `>>`, `>>>`)
 * [ ] assignment operators (`=`, `+=`, `-=`, `*=`, `/=`, `%=`, `**=`, `<<=`, `>>=`, `>>>=`, `&=`, `|=`, `^=`)
 * [x] comparison operators (`==`, `!=`, `===`, `!==`, `<`, `>`, `<=`, `>=`)

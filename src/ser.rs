@@ -20,7 +20,7 @@ impl Serialize for Value {
                     serializer.serialize_f64(*value)
                 }
             }
-            Self::Int(value) => serializer.serialize_i64(*value),
+            Self::Int(value) => serializer.serialize_str(value.to_string().as_str()),
             Self::Str(value) => serializer.serialize_str(value),
             Self::Array(value) => value.serialize(serializer),
             Self::Object(value) => {

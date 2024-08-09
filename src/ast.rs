@@ -60,6 +60,7 @@ pub enum ExprEnum<'src> {
     Mul(Box<Expression<'src>>, Box<Expression<'src>>),
     Div(Box<Expression<'src>>, Box<Expression<'src>>),
     Mod(Box<Expression<'src>>, Box<Expression<'src>>),
+    Pow(Box<Expression<'src>>, Box<Expression<'src>>),
     BwOr(Box<Expression<'src>>, Box<Expression<'src>>),
     BwAnd(Box<Expression<'src>>, Box<Expression<'src>>),
     BwXor(Box<Expression<'src>>, Box<Expression<'src>>),

@@ -71,5 +71,11 @@ if (emitResult.emitSkipped) {
     fs.renameSync(jsFile, mjsFile);
   }
   const result = await import(mjsFile);
-  console.log(JSON.stringify(result, null, 2));
+  console.log(JSON.stringify(result, (_key, value) => {
+    if (typeof value === "bigint") {
+      return value.toString();
+    } else {
+      return value;
+    }
+  }, 2));
 }

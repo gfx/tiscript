@@ -114,6 +114,16 @@ fn bin_op_mod(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
     }
 }
 
+fn bin_op_pow(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
+    match (lhs, rhs) {
+        (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Num(lhs.powf(*rhs))),
+        (Value::Int(lhs), Value::Int(rhs)) => Ok(Value::Int(
+            lhs.saturating_pow((*rhs).min(u32::MAX as i64) as u32),
+        )), // when overflowed, returns i64::MAX
+        _ => Err(err_bin_op("**", lhs, rhs)),
+    }
+}
+
 fn bin_op_bw_or(lhs: &Value, rhs: &Value) -> Result<Value, Box<dyn Error>> {
     match (lhs, rhs) {
         (Value::Num(lhs), Value::Num(rhs)) => Ok(Value::Num((*lhs as i32 | *rhs as i32) as f64)),
@@ -445,6 +455,7 @@ impl Vm {
                 OpCode::Mul => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_mul)?,
                 OpCode::Div => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_div)?,
                 OpCode::Mod => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_mod)?,
+                OpCode::Pow => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_pow)?,
                 OpCode::BwOr => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_bw_or)?,
                 OpCode::BwAnd => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_bw_and)?,
                 OpCode::BwXor => Self::interpret_bin_op(&mut self.top_mut()?.stack, bin_op_bw_xor)?,

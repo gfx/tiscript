@@ -118,8 +118,8 @@ fn unary_op(i: Span) -> IResult<Span, Expression> {
     }
 }
 
-fn factor(i: Span) -> IResult<Span, Expression> {
-    alt((
+fn factor(input: Span) -> IResult<Span, Expression> {
+    let (i, expr) = alt((
         undefined_literal,
         null_literal,
         true_literal,
@@ -134,7 +134,21 @@ fn factor(i: Span) -> IResult<Span, Expression> {
         func_call,
         ident,
         parens,
-    ))(i)
+    ))(input)?;
+
+    let Ok((i, _)) = tag::<&str, Span, Error>("**")(i) else {
+        return Ok((i, expr));
+    };
+
+    let (i, rhs) = space_delimited(factor)(i)?;
+    Ok((
+        i,
+        Expression {
+            expr: ExprEnum::Pow(Box::new(expr), Box::new(rhs)),
+            span: input,
+        },
+    ))
+
 }
 
 fn func_call(i: Span) -> IResult<Span, Expression> {

@@ -221,6 +221,7 @@ impl Compiler {
             ExprEnum::Mul(lhs, rhs) => self.bin_op(OpCode::Mul, lhs, rhs)?,
             ExprEnum::Div(lhs, rhs) => self.bin_op(OpCode::Div, lhs, rhs)?,
             ExprEnum::Mod(lhs, rhs) => self.bin_op(OpCode::Mod, lhs, rhs)?,
+            ExprEnum::Pow(lhs, rhs) => self.bin_op(OpCode::Pow, lhs, rhs)?,
             ExprEnum::BwOr(lhs, rhs) => self.bin_op(OpCode::BwOr, lhs, rhs)?,
             ExprEnum::BwAnd(lhs, rhs) => self.bin_op(OpCode::BwAnd, lhs, rhs)?,
             ExprEnum::BwXor(lhs, rhs) => self.bin_op(OpCode::BwXor, lhs, rhs)?,

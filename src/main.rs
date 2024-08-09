@@ -301,12 +301,12 @@ mod tests {
             result,
             json!(
                 {
-                    "zero": 0,
-                    "answer": 42,
-                    "minus": -42,
-                    "w_underscore": 1000000,
-                    "i32_max": 2147483647i32,
-                    "i64_max": 9223372036854775807i64
+                    "zero": "0",
+                    "answer": "42",
+                    "minus": "-42",
+                    "w_underscore": "1000000",
+                    "i32_max": "2147483647",
+                    "i64_max": "9223372036854775807"
                 }
             )
         );
@@ -320,7 +320,7 @@ mod tests {
         "#,
         )
         .unwrap();
-        assert_eq!(result, json!({ "a": 43 }));
+        assert_eq!(result, json!({ "a": "43" }));
     }
 
     #[test]
@@ -331,7 +331,7 @@ mod tests {
         "#,
         )
         .unwrap();
-        assert_eq!(result, json!({ "a": 41 }));
+        assert_eq!(result, json!({ "a": "41" }));
     }
 
     #[test]
@@ -342,7 +342,7 @@ mod tests {
         "#,
         )
         .unwrap();
-        assert_eq!(result, json!({ "a": 84 }));
+        assert_eq!(result, json!({ "a": "84" }));
     }
 
     #[test]
@@ -353,7 +353,7 @@ mod tests {
         "#,
         )
         .unwrap();
-        assert_eq!(result, json!({ "a": 14 }));
+        assert_eq!(result, json!({ "a": "14" }));
     }
 
     // TODO: literal types are not yet supported so the error message does not match TypeScript compiler's.
