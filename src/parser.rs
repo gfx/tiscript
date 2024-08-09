@@ -989,7 +989,7 @@ fn type_expr(i: Span) -> IResult<Span, TypeDecl> {
     let (i, td) = alt((type_primitive, type_object))(i)?;
 
     let Ok((i, _)) = space_delimited(char::<Span, Error>('|'))(i) else {
-        return Ok((i, td))
+        return Ok((i, td));
     };
 
     let (i, _rhs) = type_expr(i)?;
