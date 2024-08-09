@@ -987,7 +987,13 @@ fn type_object(input: Span) -> IResult<Span, TypeDecl> {
 
 fn type_expr(i: Span) -> IResult<Span, TypeDecl> {
     let (i, td) = alt((type_primitive, type_object))(i)?;
-    Ok((i, td))
+
+    let Ok((i, _)) = space_delimited(char::<Span, Error>('|'))(i) else {
+        return Ok((i, td))
+    };
+
+    let (i, _rhs) = type_expr(i)?;
+    Ok((i, TypeDecl::Any)) // union, but not yet implemented
 }
 
 fn argument(i: Span) -> IResult<Span, (Span, TypeDecl)> {

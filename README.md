@@ -181,11 +181,11 @@ This is a list of features in TypeScript that are planned or implemented:
 * [x] `satisfies` type operator
 * [x] primitive type annotations
 * [ ] literal type annotations
-* [ ] union type annotations
+* [x] union type annotations
 * [ ] intersection type annotations
 * [ ] tuple type annotations
 * [ ] array type annotations
-* [ ] [WIP] object type annotations
+* [x] object type annotations
 * [ ] type guards
 * [ ] `interface` type statement
 * [x] `type` type statement
